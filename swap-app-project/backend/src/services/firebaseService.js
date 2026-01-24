@@ -1,5 +1,7 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('../../serviceAccountKey.json');
+const serviceAccount = JSON.parse(
+  Buffer.from(process.env.SERVICE_ACCOUNT, "base64").toString("utf8")
+);
 require('dotenv').config(); // Aseguramos que cargue las variables de entorno aquí también
 
 // 1. Inicializamos Firebase SIEMPRE antes de exportar nada
