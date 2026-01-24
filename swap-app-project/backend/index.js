@@ -7,8 +7,23 @@ const helmet = require('helmet');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const allowedOrigins = [
+  'http://localhost:5173', 
+  'https://tu-frontend-en-vercel.vercel.app' 
+];
+
 // Middlewares
-app.use(cors());
+app.use(cors(
+  {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}
+));
 app.use(helmet());
 app.use(express.json());
 
@@ -27,3 +42,11 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Servidor corriendo en puerto ${PORT}`);
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`✅ Servidor local corriendo en http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app; // <--- ESTO ES CRUCIAL PARA VERCEL
