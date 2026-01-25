@@ -6,6 +6,7 @@ const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const verifyToken = require('./src/middleware/authMiddleware');
 
 const allowedOrigins = [
   'http://localhost:5173', 
@@ -48,5 +49,17 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`✅ Servidor local corriendo en http://localhost:${PORT}`);
   });
 }
+
+app.get('/api/ping-protected', verifyToken, (req, res) => {
+  // Si llega aquí, es que el token era válido
+  console.log("¡Petición recibida de:", req.user.email);
+  
+  res.json({ 
+    success: true, 
+    message: `¡Conexión Exitosa! El servidor reconoce a: ${req.user.email}`,
+    uid: req.user.uid
+  });
+});
+
 
 module.exports = app; // <--- ESTO ES CRUCIAL PARA VERCEL

@@ -1,49 +1,46 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Importaremos las páginas (crearemos archivos placeholder en el siguiente paso)
 import Login from './pages/Login';
 import Home from './pages/Home';
-import Locker from './pages/Locker';
-import Upload from './pages/Upload';
+import Profile from './pages/Profile';
 import Layout from './layouts/Layout';
 
-// Componente para proteger rutas (Si no hay usuario, manda a Login)
+// Componente de protección (Lógica intacta)
 const ProtectedRoute = ({ children }) => {
-  const user = true; // TODO: Conectar con Firebase Auth real
-  return user ? children : <Navigate to="/login" />;
+  const { user, loading } = useAuth();
+  if (loading) return <p>Cargando autenticación...</p>;
+  if (!user) return <Navigate to="/login" />;
+  return children;
 };
 
 function App() {
   return (
-    <BrowserRouter>
-      {/* Toaster es para las notificaciones bonitas */}
-      <Toaster position="top-center" />
-      
-      <Routes>
-        <Route path="/login" element={<Login />} />
+    <AuthProvider>
+      <BrowserRouter>
+        {/* Notificaciones sin estilos */}
+        <Toaster />
         
-        {/* Rutas protegidas por el Layout (Barra de navegación) */}
-        <Route element={<Layout />}>
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          } />
-          <Route path="/upload" element={
-            <ProtectedRoute>
-              <Upload />
-            </ProtectedRoute>
-          } />
-          {/* Ruta dinámica para el casillero */}
-          <Route path="/locker/:exchangeId" element={
-            <ProtectedRoute>
-              <Locker />
-            </ProtectedRoute>
-          } />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          <Route element={<Layout />}>
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            {/* Agrega aquí Upload o Locker si los tienes creados */}
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

@@ -1,15 +1,29 @@
 import { Outlet, Link } from 'react-router-dom';
-import { Home, PlusSquare, User } from 'lucide-react';
 
 const Layout = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Aquí se renderizan las páginas hijas (Home, Upload, etc.) */}
-      <Outlet />
+    <div>
+      {/* Contenido Principal */}
+      <main>
+        <Outlet />
+      </main>
 
-      {/* Navbar Inferior Fijo */}
-      <h1>Barra de navegación</h1>
+      <hr />
+
+      {/* Navegación inferior (Raw HTML) */}
+      <nav>
+        <h3>Menú de Navegación</h3>
+        <ul>
+          <li>
+            <Link to="/">[Ir al Inicio]</Link>
+          </li>
+          <li>
+            <Link to="/profile">[Ir al Perfil]</Link>
+          </li>
+        </ul>
+      </nav>
     </div>
   );
 };
+
 export default Layout;

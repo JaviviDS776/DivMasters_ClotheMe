@@ -1,1 +1,8 @@
-const router = require('express').Router(); router.post('/assign', (req, res) => res.send('Locker Assigned')); module.exports = router;
+const router = require('express').Router();
+const { assignLocker } = require('../controllers/lockerController');
+const verifyToken = require('../middleware/authMiddleware'); // Importamos el guardia
+
+// Protegemos la ruta. Ahora SOLO usuarios logueados pueden pedir casilleros.
+router.post('/assign', verifyToken, assignLocker); 
+
+module.exports = router;
