@@ -9,8 +9,7 @@ const PORT = process.env.PORT || 3000;
 const verifyToken = require('./src/middleware/authMiddleware');
 
 const allowedOrigins = [
-  'http://localhost:5173', 
-  'https://tu-frontend-en-vercel.vercel.app' 
+  'http://localhost:5173'
 ];
 
 // Middlewares
