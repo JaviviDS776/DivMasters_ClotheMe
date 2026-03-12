@@ -12,7 +12,7 @@ const Home = () => {
       const token = await user.getIdToken();
       
       // Asegúrate que esta URL sea la correcta de tu backend
-      const response = await fetch('http://localhost:3000/api/ping-protected', {
+      const response = await fetch('https://swapappbackend.vercel.app/api/ping-protected', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
