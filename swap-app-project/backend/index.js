@@ -35,6 +35,7 @@ require('./src/services/firebaseService');
 // Rutas (Placeholders)
 app.use('/api/exchanges', require('./src/routes/exchangeRoutes'));
 app.use('/api/locker', require('./src/routes/lockerRoutes'));
+app.use('/api/posts', require('./src/routes/postRoutes'));
 
 app.get('/', (req, res) => {
   res.send('👕 SwapApp API is running...');
