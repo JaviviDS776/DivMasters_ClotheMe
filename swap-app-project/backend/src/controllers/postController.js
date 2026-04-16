@@ -69,7 +69,7 @@ exports.toggleLike = async (req, res) => {
 
     const likeDoc = await likeRef.get();
 
-    if (likeDoc.exists()) {
+    if (likeDoc.exists) {
       // Si existe, quitar like
       await likeRef.delete();
       await postRef.update({
