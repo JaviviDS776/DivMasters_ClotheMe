@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
+import Upload from './pages/Upload';
 import Layout from './layouts/Layout';
 
 // Componente de protección (Lógica intacta)
@@ -36,7 +37,11 @@ function App() {
                 <Profile />
               </ProtectedRoute>
             } />
-            {/* Agrega aquí Upload o Locker si los tienes creados */}
+            <Route path="/upload" element={
+              <ProtectedRoute>
+                <Upload />
+              </ProtectedRoute>
+            } />
           </Route>
         </Routes>
       </BrowserRouter>
