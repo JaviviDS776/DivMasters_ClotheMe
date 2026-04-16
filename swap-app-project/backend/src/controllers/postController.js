@@ -1,5 +1,4 @@
-const { db } = require('../services/firebaseService');
-const admin = require('firebase-admin');
+const { db, admin } = require('../services/firebaseService');
 const { uploadImage } = require('../services/cloudinaryService');
 
 // 1. Crear un nuevo post
@@ -125,9 +124,14 @@ exports.addComment = async (req, res) => {
 exports.getComments = async (req, res) => {
   try {
     const { id: postId } = req.params;
+    console.log('Solicitando comentarios para post:', postId);
+
+    if (!db) {
+      throw new Error('Base de datos no inicializada');
+    }
+
     const snapshot = await db.collection('comments')
       .where('postId', '==', postId)
-      .orderBy('createdAt', 'asc')
       .get();
 
     const comments = [];
@@ -137,7 +141,7 @@ exports.getComments = async (req, res) => {
 
     res.status(200).json(comments);
   } catch (error) {
-    console.error('Error al obtener comentarios:', error);
-    res.status(500).json({ error: 'Error al obtener comentarios' });
+    console.error('Error CRÍTICO en getComments:', error.message);
+    res.status(500).json({ error: 'Error en el servidor', details: error.message });
   }
 };

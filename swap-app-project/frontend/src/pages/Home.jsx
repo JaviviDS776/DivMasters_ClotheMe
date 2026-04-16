@@ -5,13 +5,14 @@ import { auth } from '../firebase';
 
 const PostCard = ({ post }) => {
   const [likes, setLikes] = useState(post.likesCount || 0);
-  const [isLiked, setIsLiked] = useState(false); // Podríamos chequear esto si el backend lo devuelve
+  const [isLiked, setIsLiked] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
 
-  const handleLike = async () => {
+  const handleLike = async (e) => {
+    e.stopPropagation();
     try {
       const result = await toggleLike(post.id);
       setIsLiked(result.liked);
@@ -21,7 +22,8 @@ const PostCard = ({ post }) => {
     }
   };
 
-  const fetchComments = async () => {
+  const fetchComments = async (e) => {
+    e.stopPropagation();
     if (!showComments) {
       setLoadingComments(true);
       try {
@@ -42,7 +44,7 @@ const PostCard = ({ post }) => {
 
     try {
       const comment = await addComment(post.id, newComment);
-      setComments([...comments, { ...comment, id: Date.now() }]); // Optimistic update
+      setComments([...comments, { ...comment, id: Date.now() }]);
       setNewComment('');
       toast.success('Comentario añadido');
     } catch (error) {
@@ -51,93 +53,91 @@ const PostCard = ({ post }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden max-w-2xl mx-auto transition-all hover:border-gray-300">
-      {/* Header */}
-      <div className="px-4 py-3 flex items-center space-x-2">
-        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
-          {post.authorName?.charAt(0) || 'U'}
-        </div>
-        <div>
-          <p className="text-sm font-bold text-gray-800">{post.authorName}</p>
-          <p className="text-xs text-gray-500">{post.authorEmail}</p>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="px-4 pb-2">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">{post.title}</h2>
-        <p className="text-gray-700 text-sm whitespace-pre-wrap">{post.description}</p>
-      </div>
-
-      {/* Image */}
-      {post.imageUrl && (
-        <div className="bg-gray-100">
-          <img src={post.imageUrl} alt={post.title} className="w-full max-h-[500px] object-contain mx-auto" />
-        </div>
-      )}
-
-      {/* Actions (Reddit style) */}
-      <div className="px-4 py-2 flex items-center space-x-6 border-t border-gray-50">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300">
+      {/* Image Container - Fixed Aspect Ratio for consistency */}
+      <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden group">
+        {post.imageUrl ? (
+          <img 
+            src={post.imageUrl} 
+            alt={post.title} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-300">
+            Sin imagen
+          </div>
+        )}
+        
+        {/* Quick Action Overlay (Like) */}
         <button 
           onClick={handleLike}
-          className={`flex items-center space-x-1 font-medium transition-colors ${isLiked ? 'text-orange-600' : 'text-gray-500 hover:bg-gray-100 p-1 rounded'}`}
+          className={`absolute bottom-3 right-3 p-2 rounded-full shadow-md transition-all ${
+            isLiked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-600 hover:bg-white'
+          }`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
-          <span>{likes} Upvotes</span>
-        </button>
-
-        <button 
-          onClick={fetchComments}
-          className="flex items-center space-x-1 text-gray-500 font-medium hover:bg-gray-100 p-1 rounded transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <span>{post.commentsCount || 0} Comentarios</span>
         </button>
       </div>
 
-      {/* Comments Section */}
-      {showComments && (
-        <div className="bg-gray-50 px-4 py-3 border-t border-gray-100 animate-fadeIn">
-          {loadingComments ? (
-            <p className="text-center text-gray-500 text-sm py-4">Cargando comentarios...</p>
-          ) : (
-            <div className="space-y-4">
-              {comments.length === 0 ? (
-                <p className="text-center text-gray-500 text-sm py-2">No hay comentarios aún.</p>
-              ) : (
-                comments.map((comment) => (
-                  <div key={comment.id} className="flex flex-col space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-gray-800">{comment.userName}</span>
-                      <span className="text-[10px] text-gray-400">{new Date(comment.createdAt?.seconds * 1000).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-sm text-gray-700 bg-white p-2 rounded-lg shadow-sm">{comment.content}</p>
-                  </div>
-                ))
-              )}
+      {/* Info Content */}
+      <div className="p-4 flex flex-col flex-grow">
+        <div className="flex justify-between items-start mb-2">
+          <h2 className="text-lg font-bold text-gray-900 line-clamp-1">{post.title}</h2>
+          <span className="text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 ml-2">
+            Nuevo
+          </span>
+        </div>
+        
+        <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-grow">
+          {post.description}
+        </p>
 
-              {/* Add Comment Form */}
-              <form onSubmit={handleAddComment} className="flex items-center space-x-2 mt-4">
+        {/* Footer info */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white uppercase">
+              {post.authorName?.charAt(0) || 'U'}
+            </div>
+            <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
+              {post.authorName}
+            </span>
+          </div>
+          
+          <button 
+            onClick={fetchComments}
+            className="text-xs text-gray-400 hover:text-blue-500 transition-colors flex items-center space-x-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span>{post.commentsCount || 0}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Comments Drawer (Minimalist) */}
+      {showComments && (
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 max-h-48 overflow-y-auto">
+          {loadingComments ? (
+            <p className="text-[10px] text-center text-gray-400">Cargando...</p>
+          ) : (
+            <div className="space-y-2">
+              {comments.map((c) => (
+                <div key={c.id} className="text-xs">
+                  <span className="font-bold text-gray-800 mr-1">{c.userName}:</span>
+                  <span className="text-gray-600">{c.content}</span>
+                </div>
+              ))}
+              <form onSubmit={handleAddComment} className="flex mt-2">
                 <input 
-                  type="text"
+                  type="text" 
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Escribe un comentario..."
-                  className="flex-1 bg-white border border-gray-300 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Comentar..." 
+                  className="w-full text-xs bg-white border border-gray-200 rounded-full px-3 py-1 outline-none focus:border-blue-400"
                 />
-                <button 
-                  type="submit"
-                  disabled={!newComment.trim()}
-                  className="bg-blue-600 text-white p-2 rounded-full disabled:opacity-50 hover:bg-blue-700 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                </button>
               </form>
             </div>
           )}
@@ -167,30 +167,38 @@ const Home = () => {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
     </div>
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-extrabold text-gray-900">Feed Universitario</h1>
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">ClotheMe</h1>
+          <p className="text-sm text-gray-500 font-medium">Intercambia estilo, crea comunidad.</p>
+        </div>
         <button 
           onClick={() => window.location.href='/upload'}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+          className="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition-all shadow-sm active:scale-95 text-sm"
         >
-          + Nueva Prenda
+          Publicar prenda
         </button>
       </div>
 
       {posts.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-dashed border-gray-300">
-          <p className="text-gray-500 text-lg">No hay prendas publicadas todavía.</p>
-          <p className="text-gray-400 text-sm mt-2">¡Sé el primero en compartir algo!</p>
+        <div className="text-center py-24 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+          <div className="mb-4 text-gray-300">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+          </div>
+          <p className="text-gray-500 font-medium text-lg">Aún no hay tesoros por aquí</p>
+          <button className="mt-2 text-blue-600 font-bold hover:underline">¡Sé el primero!</button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {posts.map(post => (
             <PostCard key={post.id} post={post} />
           ))}
