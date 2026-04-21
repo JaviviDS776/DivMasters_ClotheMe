@@ -20,6 +20,9 @@ const Layout = () => {
           <li>
             <Link to="/profile">[Ir al Perfil]</Link>
           </li>
+          <li>
+            <Link to="/chats">[Mensajes]</Link>
+          </li>
         </ul>
       </nav>
     </div>

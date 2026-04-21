@@ -36,13 +36,14 @@ const Upload = () => {
       formData.append('image', image);
 
       // 2. Crear post en el Backend (ahora el backend sube a Cloudinary)
-      await createPost(formData);
+      const result = await createPost(formData);
+      console.log('Post creado exitosamente:', result);
 
       toast.success('¡Prenda subida con éxito!', { id: toastId });
       navigate('/');
     } catch (error) {
-      console.error(error);
-      toast.error('Error al subir la prenda', { id: toastId });
+      console.error('Error detallado al subir:', error);
+      toast.error(`Error al subir la prenda: ${error.message}`, { id: toastId });
     } finally {
       setLoading(false);
     }

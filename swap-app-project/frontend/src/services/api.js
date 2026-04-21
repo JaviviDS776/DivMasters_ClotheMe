@@ -32,7 +32,10 @@ export const createPost = async (postData) => {
     headers,
     body: isFormData ? postData : JSON.stringify(postData)
   });
-  if (!response.ok) throw new Error('Error al crear post');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al crear post');
+  }
   return await response.json();
 };
 
@@ -131,13 +134,30 @@ export const addFriend = async (friendId) => {
   return await response.json();
 };
 
-export const removeFriend = async (friendId) => {
+// --- CHAT ---
+
+export const getConversations = async () => {
   const headers = await getAuthHeaders();
-  const response = await fetch(`${API_URL}/api/users/friends/${friendId}`, {
-    method: 'DELETE',
-    headers
+  const response = await fetch(`${API_URL}/api/chat/conversations`, { headers });
+  if (!response.ok) throw new Error('Error al obtener conversaciones');
+  return await response.json();
+};
+
+export const getOrCreateConversation = async (otherUserId) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/chat/conversation`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ otherUserId })
   });
-  if (!response.ok) throw new Error('Error al eliminar amigo');
+  if (!response.ok) throw new Error('Error al iniciar conversación');
+  return await response.json();
+};
+
+export const getMessages = async (conversationId) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/chat/messages/${conversationId}`, { headers });
+  if (!response.ok) throw new Error('Error al obtener mensajes');
   return await response.json();
 };
 
