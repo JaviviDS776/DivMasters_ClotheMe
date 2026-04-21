@@ -32,7 +32,10 @@ export const createPost = async (postData) => {
     headers,
     body: isFormData ? postData : JSON.stringify(postData)
   });
-  if (!response.ok) throw new Error('Error al crear post');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al crear post');
+  }
   return await response.json();
 };
 

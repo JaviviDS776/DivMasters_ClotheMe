@@ -8,16 +8,29 @@ exports.createPost = async (req, res) => {
     const { uid, name, email } = req.user; // Obtenido del authMiddleware
     let imageUrl = req.body.imageUrl;
 
+    console.log('--- Iniciando creación de post ---');
+    console.log('Datos recibidos:', { title, description });
+    console.log('Usuario:', { uid, name, email });
+
     if (!title) {
+      console.log('Error: Título faltante');
       return res.status(400).json({ error: 'Título es obligatorio' });
     }
 
     if (req.file) {
-      const result = await uploadImage(req.file);
-      imageUrl = result.secure_url;
+      console.log('Archivo recibido, subiendo a Cloudinary...');
+      try {
+        const result = await uploadImage(req.file);
+        imageUrl = result.secure_url;
+        console.log('Imagen subida con éxito:', imageUrl);
+      } catch (cloudinaryError) {
+        console.error('Error detallado de Cloudinary:', cloudinaryError);
+        return res.status(500).json({ error: 'Error al procesar la imagen en el servidor', details: cloudinaryError.message });
+      }
     }
 
     if (!imageUrl) {
+      console.log('Error: URL de imagen faltante');
       return res.status(400).json({ error: 'Imagen es obligatoria' });
     }
 
@@ -33,11 +46,14 @@ exports.createPost = async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
+    console.log('Guardando en Firestore...');
     const docRef = await db.collection('posts').add(newPost);
+    console.log('Post guardado con ID:', docRef.id);
+    
     res.status(201).json({ id: docRef.id, ...newPost });
   } catch (error) {
-    console.error('Error al crear post:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('Error general en createPost:', error);
+    res.status(500).json({ error: 'Error interno del servidor al crear el post', details: error.message });
   }
 };
 
