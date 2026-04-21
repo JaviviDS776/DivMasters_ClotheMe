@@ -2,9 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-//const { initializeFirebase } = require('./src/services/firebaseService');
+const http = require('http');
+const { Server } = require('socket.io');
+const setupSocket = require('./src/socket/socketManager');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 const verifyToken = require('./src/middleware/authMiddleware');
 
@@ -14,48 +17,38 @@ const allowedOrigins = [
 ];
 
 // Middlewares
-app.use(cors(
-  {
+app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
-  }
-}
-));
+  },
+  credentials: true
+}));
+
 app.use(helmet());
 app.use(express.json());
 
 // Inicializar Firebase
-//initializeFirebase();
 require('./src/services/firebaseService');
 
-// Rutas (Placeholders)
+// Inicializar Socket.io
+setupSocket(server);
+
+// Rutas
 app.use('/api/exchanges', require('./src/routes/exchangeRoutes'));
 app.use('/api/locker', require('./src/routes/lockerRoutes'));
 app.use('/api/posts', require('./src/routes/postRoutes'));
 app.use('/api/users', require('./src/routes/userRoutes'));
+app.use('/api/chat', require('./src/routes/chatRoutes'));
 
 app.get('/', (req, res) => {
   res.send('👕 SwapApp API is running...');
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-});
-
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`✅ Servidor local corriendo en http://localhost:${PORT}`);
-  });
-}
-
 app.get('/api/ping-protected', verifyToken, (req, res) => {
-  // Si llega aquí, es que el token era válido
-  console.log("¡Petición recibida de:", req.user.email);
-  
   res.json({ 
     success: true, 
     message: `¡Conexión Exitosa! El servidor reconoce a: ${req.user.email}`,
@@ -63,5 +56,8 @@ app.get('/api/ping-protected', verifyToken, (req, res) => {
   });
 });
 
+server.listen(PORT, () => {
+  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
+});
 
-module.exports = app; // <--- ESTO ES CRUCIAL PARA VERCEL
+module.exports = app;

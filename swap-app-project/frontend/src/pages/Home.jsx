@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { getPosts, toggleLike, addComment, getComments } from '../services/api';
+import { getPosts, toggleLike, addComment, getComments, getOrCreateConversation } from '../services/api';
 import toast from 'react-hot-toast';
 import { auth } from '../firebase';
+import { useNavigate } from 'react-router-dom';
 
 const PostCard = ({ post }) => {
   const [likes, setLikes] = useState(post.likesCount || 0);
@@ -10,6 +11,27 @@ const PostCard = ({ post }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  const navigate = useNavigate();
+
+  const handleInterest = async (e) => {
+    e.stopPropagation();
+    if (!auth.currentUser) {
+      toast.error('Debes iniciar sesión');
+      return;
+    }
+    if (auth.currentUser.uid === post.userId) {
+      toast.error('No puedes interesarte en tu propia prenda');
+      return;
+    }
+
+    try {
+      const conv = await getOrCreateConversation(post.userId);
+      // Redirigir al chat con el ID de la conversación y un mensaje inicial sugerido
+      navigate(`/chat/${conv.id}`, { state: { initialMessage: `¡Hola! Me interesa tu prenda: ${post.title}` } });
+    } catch (error) {
+      toast.error('Error al iniciar chat');
+    }
+  };
 
   const handleLike = async (e) => {
     e.stopPropagation();
@@ -100,9 +122,17 @@ const PostCard = ({ post }) => {
             <div className="w-6 h-6 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white uppercase">
               {post.authorName?.charAt(0) || 'U'}
             </div>
-            <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
-              {post.authorName}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
+                {post.authorName}
+              </span>
+              <button 
+                onClick={handleInterest}
+                className="text-[10px] text-blue-600 font-bold hover:underline text-left"
+              >
+                Me interesa
+              </button>
+            </div>
           </div>
           
           <button 
@@ -150,6 +180,7 @@ const PostCard = ({ post }) => {
 const Home = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPosts();
@@ -180,7 +211,7 @@ const Home = () => {
           <p className="text-sm text-gray-500 font-medium">Intercambia estilo, crea comunidad.</p>
         </div>
         <button 
-          onClick={() => window.location.href='/upload'}
+          onClick={() => navigate('/upload')}
           className="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition-all shadow-sm active:scale-95 text-sm"
         >
           Publicar prenda

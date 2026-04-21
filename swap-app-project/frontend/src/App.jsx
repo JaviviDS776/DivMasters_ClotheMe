@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Upload from './pages/Upload';
+import Chat from './pages/Chat';
+import ChatList from './pages/ChatList';
 import Layout from './layouts/Layout';
 
 // Componente de protección (Lógica intacta)
@@ -40,6 +42,16 @@ function App() {
             <Route path="/upload" element={
               <ProtectedRoute>
                 <Upload />
+              </ProtectedRoute>
+            } />
+            <Route path="/chats" element={
+              <ProtectedRoute>
+                <ChatList />
+              </ProtectedRoute>
+            } />
+            <Route path="/chat/:conversationId" element={
+              <ProtectedRoute>
+                <Chat />
               </ProtectedRoute>
             } />
           </Route>
