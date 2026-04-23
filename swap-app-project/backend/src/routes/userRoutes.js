@@ -12,5 +12,6 @@ router.get('/search', userController.searchUsers);
 router.get('/friends', userController.getFriends);
 router.post('/friends', userController.addFriend);
 router.delete('/friends/:friendId', userController.removeFriend);
+router.get('/:userId', userController.getUserById);
 
 module.exports = router;

@@ -180,3 +180,26 @@ exports.removeFriend = async (req, res) => {
     res.status(500).json({ error: 'Error al eliminar amigo' });
   }
 };
+
+// 7. Obtener usuario por ID (Público/Básico)
+exports.getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const doc = await db.collection('users').doc(userId).get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const data = doc.data();
+    res.status(200).json({
+      uid: doc.id,
+      displayName: data.displayName || 'Usuario',
+      photoURL: data.photoURL || '',
+      bio: data.bio || ''
+    });
+  } catch (error) {
+    console.error('ERROR en getUserById:', error);
+    res.status(500).json({ error: 'Error al obtener usuario' });
+  }
+};

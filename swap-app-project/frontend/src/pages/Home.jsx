@@ -1,8 +1,96 @@
 import React, { useState, useEffect } from 'react';
-import { getPosts, toggleLike, addComment, getComments, getOrCreateConversation } from '../services/api';
+import { getPosts, toggleLike, addComment, getComments, getOrCreateConversation, getMyPosts, proposeExchange } from '../services/api';
 import toast from 'react-hot-toast';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+
+const ExchangeModal = ({ isOpen, onClose, targetPost }) => {
+  const [myPosts, setMyPosts] = useState([]);
+  const [selectedPostId, setSelectedPostId] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchMyPosts();
+    }
+  }, [isOpen]);
+
+  const fetchMyPosts = async () => {
+    try {
+      const data = await getMyPosts();
+      setMyPosts(data);
+    } catch (error) {
+      toast.error('Error al cargar tus prendas');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedPostId) return toast.error('Selecciona una prenda para ofrecer');
+    
+    setLoading(true);
+    try {
+      await proposeExchange({
+        recipientId: targetPost.authorId || targetPost.userId,
+        garmentWantedId: targetPost.id,
+        garmentOfferedId: selectedPostId
+      });
+      toast.success('¡Propuesta de intercambio enviada!');
+      onClose();
+    } catch (error) {
+      toast.error('Error al enviar propuesta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[80vh] flex flex-col">
+        <h2 className="text-xl font-black mb-4">Proponer Intercambio</h2>
+        <p className="text-sm text-gray-500 mb-6">Selecciona una de tus prendas para ofrecer a cambio de <strong>{targetPost.title}</strong></p>
+        
+        <div className="flex-grow overflow-y-auto grid grid-cols-2 gap-4 mb-6">
+          {myPosts.length === 0 ? (
+            <p className="col-span-2 text-center py-8 text-gray-400">No tienes prendas publicadas.</p>
+          ) : (
+            myPosts.map(post => (
+              <div 
+                key={post.id} 
+                onClick={() => setSelectedPostId(post.id)}
+                className={`cursor-pointer rounded-xl overflow-hidden border-2 transition-all ${
+                  selectedPostId === post.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-100'
+                }`}
+              >
+                <img src={post.imageUrl} className="w-full h-32 object-cover" alt={post.title} />
+                <div className="p-2 bg-white">
+                  <p className="text-[10px] font-bold truncate">{post.title}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <button 
+            onClick={onClose}
+            className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-200"
+          >
+            Cancelar
+          </button>
+          <button 
+            onClick={handleSubmit}
+            disabled={loading || myPosts.length === 0}
+            className="flex-1 bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 disabled:opacity-50"
+          >
+            {loading ? 'Enviando...' : 'Enviar Propuesta'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PostCard = ({ post }) => {
   const [likes, setLikes] = useState(post.likesCount || 0);
@@ -11,6 +99,7 @@ const PostCard = ({ post }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleInterest = async (e) => {
@@ -19,15 +108,28 @@ const PostCard = ({ post }) => {
       toast.error('Debes iniciar sesión');
       return;
     }
-    if (auth.currentUser.uid === post.userId) {
+    
+    const authorId = post.authorId || post.userId;
+    
+    if (auth.currentUser.uid === authorId) {
       toast.error('No puedes interesarte en tu propia prenda');
       return;
     }
 
     try {
-      const conv = await getOrCreateConversation(post.userId);
-      // Redirigir al chat con el ID de la conversación y un mensaje inicial sugerido
-      navigate(`/chat/${conv.id}`, { state: { initialMessage: `¡Hola! Me interesa tu prenda: ${post.title}` } });
+      const conv = await getOrCreateConversation(authorId);
+      const otherUser = {
+        uid: authorId,
+        displayName: post.authorName || 'Usuario',
+        photoURL: ''
+      };
+      
+      navigate(`/chat/${conv.id}`, { 
+        state: { 
+          initialMessage: `¡Hola! Me interesa tu prenda: ${post.title}`,
+          otherUser: otherUser
+        } 
+      });
     } catch (error) {
       toast.error('Error al iniciar chat');
     }
@@ -75,105 +177,116 @@ const PostCard = ({ post }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300">
-      {/* Image Container - Fixed Aspect Ratio for consistency */}
-      <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden group">
-        {post.imageUrl ? (
-          <img 
-            src={post.imageUrl} 
-            alt={post.title} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300">
-            Sin imagen
-          </div>
-        )}
-        
-        {/* Quick Action Overlay (Like) */}
-        <button 
-          onClick={handleLike}
-          className={`absolute bottom-3 right-3 p-2 rounded-full shadow-md transition-all ${
-            isLiked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-600 hover:bg-white'
-          }`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Info Content */}
-      <div className="p-4 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-2">
-          <h2 className="text-lg font-bold text-gray-900 line-clamp-1">{post.title}</h2>
-          <span className="text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 ml-2">
-            Nuevo
-          </span>
-        </div>
-        
-        <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-grow">
-          {post.description}
-        </p>
-
-        {/* Footer info */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white uppercase">
-              {post.authorName?.charAt(0) || 'U'}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
-                {post.authorName}
-              </span>
-              <button 
-                onClick={handleInterest}
-                className="text-[10px] text-blue-600 font-bold hover:underline text-left"
-              >
-                Me interesa
-              </button>
-            </div>
-          </div>
-          
-          <button 
-            onClick={fetchComments}
-            className="text-xs text-gray-400 hover:text-blue-500 transition-colors flex items-center space-x-1"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span>{post.commentsCount || 0}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Comments Drawer (Minimalist) */}
-      {showComments && (
-        <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 max-h-48 overflow-y-auto">
-          {loadingComments ? (
-            <p className="text-[10px] text-center text-gray-400">Cargando...</p>
+    <>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300">
+        <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden group">
+          {post.imageUrl ? (
+            <img 
+              src={post.imageUrl} 
+              alt={post.title} 
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+            />
           ) : (
-            <div className="space-y-2">
-              {comments.map((c) => (
-                <div key={c.id} className="text-xs">
-                  <span className="font-bold text-gray-800 mr-1">{c.userName}:</span>
-                  <span className="text-gray-600">{c.content}</span>
-                </div>
-              ))}
-              <form onSubmit={handleAddComment} className="flex mt-2">
-                <input 
-                  type="text" 
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Comentar..." 
-                  className="w-full text-xs bg-white border border-gray-200 rounded-full px-3 py-1 outline-none focus:border-blue-400"
-                />
-              </form>
+            <div className="w-full h-full flex items-center justify-center text-gray-300">
+              Sin imagen
             </div>
           )}
+          
+          <button 
+            onClick={handleLike}
+            className={`absolute bottom-3 right-3 p-2 rounded-full shadow-md transition-all ${
+              isLiked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-600 hover:bg-white'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
         </div>
-      )}
-    </div>
+
+        <div className="p-4 flex flex-col flex-grow">
+          <div className="flex justify-between items-start mb-2">
+            <h2 className="text-lg font-bold text-gray-900 line-clamp-1">{post.title}</h2>
+            <span className="text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 ml-2">
+              Nuevo
+            </span>
+          </div>
+          
+          <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-grow">
+            {post.description}
+          </p>
+
+          <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                {post.authorName?.charAt(0) || 'U'}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
+                  {post.authorName}
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleInterest}
+                    className="text-[10px] text-blue-600 font-bold hover:underline text-left"
+                  >
+                    Chat
+                  </button>
+                  <button 
+                    onClick={() => setIsExchangeModalOpen(true)}
+                    className="text-[10px] text-indigo-600 font-bold hover:underline text-left"
+                  >
+                    Intercambiar
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              onClick={fetchComments}
+              className="text-xs text-gray-400 hover:text-blue-500 transition-colors flex items-center space-x-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span>{post.commentsCount || 0}</span>
+            </button>
+          </div>
+        </div>
+
+        {showComments && (
+          <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 max-h-48 overflow-y-auto">
+            {loadingComments ? (
+              <p className="text-[10px] text-center text-gray-400">Cargando...</p>
+            ) : (
+              <div className="space-y-2">
+                {comments.map((c) => (
+                  <div key={c.id} className="text-xs">
+                    <span className="font-bold text-gray-800 mr-1">{c.userName}:</span>
+                    <span className="text-gray-600">{c.content}</span>
+                  </div>
+                ))}
+                <form onSubmit={handleAddComment} className="flex mt-2">
+                  <input 
+                    type="text" 
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Comentar..." 
+                    className="w-full text-xs bg-white border border-gray-200 rounded-full px-3 py-1 outline-none focus:border-blue-400"
+                  />
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <ExchangeModal 
+        isOpen={isExchangeModalOpen} 
+        onClose={() => setIsExchangeModalOpen(false)} 
+        targetPost={post}
+      />
+    </>
   );
 };
 

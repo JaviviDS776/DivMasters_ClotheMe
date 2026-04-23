@@ -23,6 +23,9 @@ const Layout = () => {
           <li>
             <Link to="/chats">[Mensajes]</Link>
           </li>
+          <li>
+            <Link to="/exchanges">[Intercambios]</Link>
+          </li>
         </ul>
       </nav>
     </div>

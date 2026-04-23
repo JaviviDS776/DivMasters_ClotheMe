@@ -1,6 +1,6 @@
 import { auth } from '../firebase';
 
-const API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const getAuthHeaders = async (isFormData = false) => {
   const user = auth.currentUser;
@@ -20,6 +20,13 @@ const getAuthHeaders = async (isFormData = false) => {
 export const getPosts = async () => {
   const response = await fetch(`${API_URL}/api/posts`);
   if (!response.ok) throw new Error('Error al obtener posts');
+  return await response.json();
+};
+
+export const getMyPosts = async () => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/posts/my-posts`, { headers });
+  if (!response.ok) throw new Error('Error al obtener tus prendas');
   return await response.json();
 };
 
@@ -66,7 +73,38 @@ export const getComments = async (postId) => {
   return await response.json();
 };
 
-// --- LOCKER (Existing) ---
+// --- EXCHANGES ---
+
+export const proposeExchange = async (exchangeData) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/exchanges`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(exchangeData)
+  });
+  if (!response.ok) throw new Error('Error al proponer intercambio');
+  return await response.json();
+};
+
+export const getExchanges = async () => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/exchanges`, { headers });
+  if (!response.ok) throw new Error('Error al obtener intercambios');
+  return await response.json();
+};
+
+export const updateExchangeStatus = async (exchangeId, status) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/exchanges/${exchangeId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ status })
+  });
+  if (!response.ok) throw new Error('Error al actualizar intercambio');
+  return await response.json();
+};
+
+// --- LOCKER ---
 export const requestLockerAssignment = async (exchangeId, userB_ID) => {
   const headers = await getAuthHeaders();
   const user = auth.currentUser;
@@ -134,6 +172,13 @@ export const addFriend = async (friendId) => {
   return await response.json();
 };
 
+export const getUserById = async (userId) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/users/${userId}`, { headers });
+  if (!response.ok) throw new Error('Error al obtener usuario');
+  return await response.json();
+};
+
 // --- CHAT ---
 
 export const getConversations = async () => {
@@ -161,3 +206,13 @@ export const getMessages = async (conversationId) => {
   return await response.json();
 };
 
+export const sendMessage = async (messageData) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/chat/message`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(messageData)
+  });
+  if (!response.ok) throw new Error('Error al enviar mensaje');
+  return await response.json();
+};

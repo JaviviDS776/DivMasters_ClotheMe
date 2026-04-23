@@ -8,5 +8,6 @@ router.use(verifyToken);
 router.get('/conversations', chatController.getConversations);
 router.post('/conversation', chatController.getOrCreateConversation);
 router.get('/messages/:conversationId', chatController.getMessages);
+router.post('/message', chatController.sendMessage);
 
 module.exports = router;
