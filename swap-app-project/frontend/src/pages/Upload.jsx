@@ -19,6 +19,46 @@ const Upload = () => {
     }
   };
 
+  const compressImage = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200; // Reducimos resolución para ahorrar espacio
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Comprimimos a JPEG con calidad 0.7
+          canvas.toBlob((blob) => {
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.7);
+        };
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title || !image) {
@@ -26,16 +66,19 @@ const Upload = () => {
     }
 
     setLoading(true);
-    const toastId = toast.loading('Subiendo prenda...');
+    const toastId = toast.loading('Comprimiendo y subiendo prenda...');
 
     try {
-      // 1. Crear FormData para enviar la imagen al backend
+      // 1. Comprimir la imagen antes de subirla
+      const compressedImage = await compressImage(image);
+      
+      // 2. Crear FormData para enviar la imagen al backend
       const formData = new FormData();
       formData.append('title', title);
       formData.append('description', description);
-      formData.append('image', image);
+      formData.append('image', compressedImage);
 
-      // 2. Crear post en el Backend (ahora el backend sube a Cloudinary)
+      // 3. Crear post en el Backend
       const result = await createPost(formData);
       console.log('Post creado exitosamente:', result);
 
