@@ -8,6 +8,7 @@ router.use(verifyToken);
 
 router.get('/profile', userController.getProfile);
 router.put('/profile', userController.updateProfile);
+router.get('/all', userController.getAllUsers);
 router.get('/search', userController.searchUsers);
 router.get('/friends', userController.getFriends);
 router.post('/friends', userController.addFriend);

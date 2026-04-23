@@ -26,7 +26,11 @@ const ChatList = () => {
 
   const getOtherParticipant = (conv) => {
     const myUid = auth.currentUser?.uid;
-    return conv.participantsData?.find(p => p.uid !== myUid) || { displayName: 'Usuario' };
+    const other = conv.participantsData?.find(p => p.uid !== myUid);
+    return {
+      ...other,
+      displayName: other?.displayName || 'Usuario'
+    };
   };
 
   if (loading) return <div className="p-8 text-center">Cargando chats...</div>;
@@ -47,19 +51,33 @@ const ChatList = () => {
         ) : (
           conversations.map((conv) => {
             const other = getOtherParticipant(conv);
+            const lastActive = other?.lastActive;
+            const now = Date.now();
+            const onlineThreshold = 5 * 60 * 1000;
+            let isOnline = false;
+            if (lastActive) {
+              const lastActiveTime = lastActive._seconds ? lastActive._seconds * 1000 : new Date(lastActive).getTime();
+              isOnline = (now - lastActiveTime) < onlineThreshold;
+            }
+
             return (
               <div 
                 key={conv.id} 
                 onClick={() => navigate(`/chat/${conv.id}`, { state: { otherUser: other } })}
                 className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-center space-x-4"
               >
-                {other.photoURL ? (
-                  <img src={other.photoURL} alt={other.displayName} className="w-12 h-12 rounded-full object-cover border" />
-                ) : (
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                    {other.displayName.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <div className="relative">
+                  {other.photoURL ? (
+                    <img src={other.photoURL} alt={other.displayName} className="w-12 h-12 rounded-full object-cover border" />
+                  ) : (
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                      {other.displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {isOnline && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                  )}
+                </div>
                 
                 <div className="flex-grow">
                   <div className="flex justify-between items-baseline">

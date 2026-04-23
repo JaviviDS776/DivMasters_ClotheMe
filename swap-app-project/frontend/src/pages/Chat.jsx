@@ -99,9 +99,27 @@ const Chat = () => {
         
         <div>
           <h2 className="font-bold text-gray-800">{otherUser?.displayName || 'Chat'}</h2>
-          <p className="text-[10px] text-green-500 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> En línea
-          </p>
+          {(() => {
+            const lastActive = otherUser?.lastActive;
+            const now = Date.now();
+            const onlineThreshold = 5 * 60 * 1000; // 5 minutos
+            
+            let isOnline = false;
+            if (lastActive) {
+              const lastActiveTime = lastActive._seconds ? lastActive._seconds * 1000 : new Date(lastActive).getTime();
+              isOnline = (now - lastActiveTime) < onlineThreshold;
+            }
+
+            return isOnline ? (
+              <p className="text-[10px] text-green-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> En línea
+              </p>
+            ) : (
+              <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span> Desconectado
+              </p>
+            );
+          })()}
         </div>
       </div>
       

@@ -3,6 +3,7 @@ import { getExchanges, updateExchangeStatus, requestLockerAssignment, adminUpdat
 import { auth } from '../firebase';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
+import { Check, X, Box, QrCode, ArrowRightLeft, ShieldAlert } from 'lucide-react';
 
 const Exchanges = () => {
   const [exchanges, setExchanges] = useState([]);
@@ -37,7 +38,7 @@ const Exchanges = () => {
   const handleAdminAccept = async (exchangeId) => {
     try {
       await adminUpdateExchangeStatus(exchangeId, 'accepted');
-      toast.success('Modo Admin: Intercambio forzado a Aceptado');
+      toast.success('Admin: Intercambio aceptado');
       fetchExchanges();
     } catch (error) {
       toast.error('Error en comando admin');
@@ -46,7 +47,7 @@ const Exchanges = () => {
 
   const handleLockerRequest = async (exchange) => {
     try {
-      const result = await requestLockerAssignment(exchange.id, exchange.requesterId);
+      await requestLockerAssignment(exchange.id, exchange.requesterId);
       toast.success('¡Casillero asignado!');
       fetchExchanges();
     } catch (error) {
@@ -54,111 +55,103 @@ const Exchanges = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Cargando intercambios...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+    </div>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-3xl font-black mb-8 text-gray-900 tracking-tight">Mis Intercambios</h1>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
+      <div className="mb-10 text-center md:text-left">
+        <h1 className="text-4xl font-black text-slate-900 tracking-tighter italic">TRUEQUES</h1>
+        <p className="text-slate-500 font-medium">Gestiona tus intercambios pendientes y completados.</p>
+      </div>
 
-      <div className="space-y-6">
+      <div className="grid gap-6">
         {exchanges.length === 0 ? (
-          <div className="bg-gray-50 rounded-3xl p-12 text-center border-2 border-dashed border-gray-200">
-            <p className="text-gray-500 font-medium">No tienes intercambios propuestos aún.</p>
+          <div className="text-center py-24 bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+               <ArrowRightLeft size={24} />
+            </div>
+            <p className="text-slate-500 font-bold">No hay propuestas por ahora</p>
           </div>
         ) : (
           exchanges.map((ex) => {
             const isRequester = ex.requesterId === auth.currentUser?.uid;
             
             return (
-              <div key={ex.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 relative">
-                {/* Botón Admin Flotante (Solo para pruebas) */}
+              <div key={ex.id} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 relative group overflow-hidden">
+                {/* Admin Mode indicator */}
                 <button 
                   onClick={() => handleAdminAccept(ex.id)}
-                  className="absolute top-2 right-2 text-[8px] bg-red-100 text-red-600 px-2 py-1 rounded opacity-30 hover:opacity-100 transition-opacity font-bold uppercase"
+                  className="absolute top-4 right-4 text-[9px] bg-rose-50 text-rose-500 px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-all font-black flex items-center gap-1 border border-rose-100"
                 >
-                  Admin: Force Accept
+                  <ShieldAlert size={10} /> FORCE ACCEPT (DEBUG)
                 </button>
 
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  {/* Prenda Ofrecida */}
-                  <div className="flex-1 text-center">
-                    <p className="text-[10px] font-bold uppercase text-blue-600 mb-2">Ofrecida</p>
-                    <img 
-                      src={ex.garmentOffered.imageUrl} 
-                      className="w-32 h-32 mx-auto object-cover rounded-xl mb-2 border" 
-                      alt="Ofrecida"
-                    />
-                    <p className="text-sm font-bold truncate">{ex.garmentOffered.title}</p>
-                  </div>
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-10">
+                  {/* Visual del Trueque */}
+                  <div className="flex items-center gap-4 md:gap-8 flex-1 w-full justify-center lg:justify-start">
+                    <div className="text-center">
+                      <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl overflow-hidden border-4 border-slate-50 shadow-sm mb-3">
+                        <img src={ex.garmentOffered.imageUrl} className="w-full h-full object-cover" alt="Tu prenda" />
+                      </div>
+                      <p className="text-[10px] font-black uppercase text-slate-400">Ofrecida</p>
+                    </div>
 
-                  <div className="flex items-center justify-center">
-                    <div className="bg-gray-100 p-2 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
+                    <div className="bg-indigo-50 p-3 rounded-full text-indigo-600 animate-pulse">
+                      <ArrowRightLeft size={24} strokeWidth={3} />
+                    </div>
+
+                    <div className="text-center">
+                      <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl overflow-hidden border-4 border-indigo-50 shadow-sm mb-3">
+                        <img src={ex.garmentWanted.imageUrl} className="w-full h-full object-cover" alt="Deseada" />
+                      </div>
+                      <p className="text-[10px] font-black uppercase text-indigo-600">Deseada</p>
                     </div>
                   </div>
 
-                  {/* Prenda Deseada */}
-                  <div className="flex-1 text-center">
-                    <p className="text-[10px] font-bold uppercase text-indigo-600 mb-2">Deseada</p>
-                    <img 
-                      src={ex.garmentWanted.imageUrl} 
-                      className="w-32 h-32 mx-auto object-cover rounded-xl mb-2 border" 
-                      alt="Deseada"
-                    />
-                    <p className="text-sm font-bold truncate">{ex.garmentWanted.title}</p>
-                  </div>
-
-                  {/* Estado y Acciones */}
-                  <div className="flex-1 border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-6 flex flex-col justify-center">
-                    <div className="mb-4">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        ex.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                        ex.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                        ex.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                        'bg-blue-100 text-blue-700'
+                  {/* Info y Estado */}
+                  <div className="flex-1 w-full flex flex-col md:flex-row lg:flex-col items-center md:justify-between lg:justify-center gap-6">
+                    <div className="text-center md:text-left lg:text-center">
+                      <span className={`inline-flex px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border mb-3 ${
+                        ex.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                        ex.status === 'accepted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                        ex.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                        'bg-indigo-50 text-indigo-600 border-indigo-100'
                       }`}>
                         {ex.status === 'pending' ? 'Pendiente' : 
                          ex.status === 'accepted' ? 'Aceptado' : 
-                         ex.status === 'rejected' ? 'Rechazado' : 'En Casillero'}
+                         ex.status === 'rejected' ? 'Rechazado' : 'Listo en Casillero'}
                       </span>
+                      <p className="text-slate-800 font-black text-sm">{ex.garmentWanted.title}</p>
                     </div>
 
-                    {ex.status === 'pending' && !isRequester && (
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleStatusUpdate(ex.id, 'accepted')}
-                          className="flex-1 bg-black text-white py-2 rounded-lg text-xs font-bold hover:bg-gray-800"
-                        >
-                          Aceptar
-                        </button>
-                        <button 
-                          onClick={() => handleStatusUpdate(ex.id, 'rejected')}
-                          className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-xs font-bold hover:bg-gray-200"
-                        >
-                          Rechazar
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-3 w-full justify-center md:justify-end lg:justify-center">
+                      {ex.status === 'pending' && !isRequester && (
+                        <>
+                          <button onClick={() => handleStatusUpdate(ex.id, 'accepted')} className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-lg">
+                            <Check size={16} strokeWidth={3} /> ACEPTAR
+                          </button>
+                          <button onClick={() => handleStatusUpdate(ex.id, 'rejected')} className="flex items-center gap-2 bg-slate-100 text-slate-500 px-6 py-3 rounded-2xl font-black text-xs hover:bg-slate-200 transition-all">
+                            <X size={16} strokeWidth={3} /> RECHAZAR
+                          </button>
+                        </>
+                      )}
 
-                    {ex.status === 'accepted' && (
-                      <button 
-                        onClick={() => handleLockerRequest(ex)}
-                        className="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700"
-                      >
-                        Solicitar Casillero
-                      </button>
-                    )}
+                      {ex.status === 'accepted' && (
+                        <button onClick={() => handleLockerRequest(ex)} className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-xs hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100">
+                          <Box size={16} strokeWidth={3} /> SOLICITAR CASILLERO
+                        </button>
+                      )}
 
-                    {ex.qrCodes && (
-                      <button 
-                        onClick={() => setSelectedQR(isRequester ? ex.qrCodes.userA : ex.qrCodes.userB)}
-                        className="w-full bg-indigo-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-indigo-700"
-                      >
-                        Ver mi código QR
-                      </button>
-                    )}
+                      {ex.qrCodes && (
+                        <button onClick={() => setSelectedQR(isRequester ? ex.qrCodes.userA : ex.qrCodes.userB)} className="flex items-center gap-2 bg-black text-white px-8 py-3 rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-xl">
+                          <QrCode size={16} strokeWidth={3} /> VER MI QR
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -167,20 +160,19 @@ const Exchanges = () => {
         )}
       </div>
 
-      {/* Modal de QR */}
+      {/* Modal QR mejorado */}
       {selectedQR && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center">
-            <h3 className="text-xl font-bold mb-4">Tu código de intercambio</h3>
-            <div className="bg-white p-4 inline-block border-4 border-black rounded-2xl mb-4">
-              <QRCode value={selectedQR} size={200} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl relative">
+            <h3 className="text-2xl font-black text-slate-800 mb-2">Tu Llave Digital</h3>
+            <p className="text-slate-500 text-sm mb-8">Escanea esto en el casillero físico para abrirlo.</p>
+            
+            <div className="bg-white p-6 inline-block border-8 border-slate-50 rounded-[2.5rem] shadow-inner mb-8">
+              <QRCode value={selectedQR} size={180} />
             </div>
-            <p className="text-sm text-gray-500 mb-6">Muestra este código en el tótem del casillero para completar el intercambio.</p>
-            <button 
-              onClick={() => setSelectedQR(null)}
-              className="w-full bg-black text-white py-3 rounded-xl font-bold"
-            >
-              Cerrar
+
+            <button onClick={() => setSelectedQR(null)} className="w-full bg-slate-100 text-slate-600 py-4 rounded-2xl font-black text-xs hover:bg-slate-200 transition-all">
+              CERRAR
             </button>
           </div>
         </div>

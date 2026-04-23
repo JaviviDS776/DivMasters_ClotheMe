@@ -14,7 +14,8 @@ const getParticipantsInfo = async (uids) => {
       users[doc.id] = {
         uid: doc.id,
         displayName: doc.data().displayName || 'Usuario',
-        photoURL: doc.data().photoURL || ''
+        photoURL: doc.data().photoURL || '',
+        lastActive: doc.data().lastActive || null
       };
     });
     return users;
@@ -120,6 +121,17 @@ exports.getOrCreateConversation = async (req, res) => {
 exports.getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
+    const { uid } = req.user;
+
+    // Verificar si el usuario es participante
+    const convDoc = await db.collection('conversations').doc(conversationId).get();
+    if (!convDoc.exists) {
+      return res.status(404).json({ error: 'Conversación no encontrada' });
+    }
+    
+    if (!convDoc.data().participants.includes(uid)) {
+      return res.status(403).json({ error: 'No tienes permiso para ver esta conversación' });
+    }
     
     const snapshot = await db.collection('conversations')
       .doc(conversationId)
@@ -139,7 +151,7 @@ exports.getMessages = async (req, res) => {
   }
 };
 
-// Enviar mensaje vía REST (Fallback para Vercel/Sockets)
+// Enviar mensaje vía REST
 exports.sendMessage = async (req, res) => {
   try {
     const { uid } = req.user;
@@ -149,6 +161,18 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ error: 'Faltan datos para el mensaje' });
     }
 
+    // Verificar si el usuario es participante
+    const convRef = db.collection('conversations').doc(conversationId);
+    const convDoc = await convRef.get();
+    
+    if (!convDoc.exists) {
+      return res.status(404).json({ error: 'Conversación no encontrada' });
+    }
+
+    if (!convDoc.data().participants.includes(uid)) {
+      return res.status(403).json({ error: 'No eres participante de esta conversación' });
+    }
+
     const newMessage = {
       senderId: uid,
       receiverId: receiverId || '',
@@ -156,19 +180,21 @@ exports.sendMessage = async (req, res) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
+    const batch = db.batch();
+    
     // Guardar mensaje
-    await db.collection('conversations')
-      .doc(conversationId)
-      .collection('messages')
-      .add(newMessage);
+    const msgRef = convRef.collection('messages').doc();
+    batch.set(msgRef, newMessage);
 
-    // Actualizar conversacion
-    await db.collection('conversations').doc(conversationId).update({
+    // Actualizar conversación
+    batch.update(convRef, {
       lastMessage: text,
       lastActivity: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    res.status(201).json({ success: true, message: newMessage });
+    await batch.commit();
+
+    res.status(201).json({ success: true, message: { id: msgRef.id, ...newMessage } });
   } catch (error) {
     console.error('Error en sendMessage REST:', error);
     res.status(500).json({ error: 'Error al enviar mensaje' });

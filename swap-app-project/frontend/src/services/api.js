@@ -158,6 +158,13 @@ export const updateUserProfile = async (profileData) => {
   return await response.json();
 };
 
+export const getAllUsers = async () => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/users/all`, { headers });
+  if (!response.ok) throw new Error('Error al obtener todos los usuarios');
+  return await response.json();
+};
+
 export const searchUsers = async (query) => {
   const headers = await getAuthHeaders();
   const response = await fetch(`${API_URL}/api/users/search?q=${query}`, { headers });
