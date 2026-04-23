@@ -60,7 +60,11 @@ exports.createPost = async (req, res) => {
 // 2. Obtener todos los posts (Feed)
 exports.getPosts = async (req, res) => {
   try {
-    const snapshot = await db.collection('posts').orderBy('createdAt', 'desc').get();
+    // Añadimos un límite de 50 posts para evitar el error 413 de Vercel
+    const snapshot = await db.collection('posts')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
     const posts = [];
     snapshot.forEach(doc => {
       posts.push({ id: doc.id, ...doc.data() });

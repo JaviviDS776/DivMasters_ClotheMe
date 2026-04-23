@@ -13,15 +13,23 @@ const verifyToken = require('./src/middleware/authMiddleware');
 
 const allowedOrigins = [
   'http://localhost:5173', 
-  'https://swapappfrontend.vercel.app'
+  'https://swapappfrontend.vercel.app',
+  'https://swapappfrontend.vercel.app/'
 ];
 
 // Middlewares
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Limpiar el origen de barras finales para la comparación
+    const sanitizedOrigin = origin ? origin.replace(/\/$/, '') : null;
+    const isAllowed = !sanitizedOrigin || 
+                     allowedOrigins.some(o => o.replace(/\/$/, '') === sanitizedOrigin) || 
+                     process.env.NODE_ENV !== 'production';
+
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
