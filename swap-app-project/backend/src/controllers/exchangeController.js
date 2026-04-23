@@ -128,3 +128,22 @@ exports.updateExchangeStatus = async (req, res) => {
     res.status(500).json({ error: 'Error al actualizar el estado del intercambio' });
   }
 };
+
+// 4. Modo ADMIN (Pruebas): Forzar estado de cualquier intercambio
+exports.adminUpdateExchangeStatus = async (req, res) => {
+  try {
+    const { exchangeId } = req.params;
+    const { status } = req.body;
+
+    const exchangeRef = db.collection('exchanges').doc(exchangeId);
+    await exchangeRef.update({
+      status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.status(200).json({ id: exchangeId, status, adminMode: true });
+  } catch (error) {
+    console.error('Error en adminUpdateExchangeStatus:', error);
+    res.status(500).json({ error: 'Error en modo admin' });
+  }
+};

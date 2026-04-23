@@ -17,19 +17,15 @@ const allowedOrigins = [
   'https://swapappfrontend.vercel.app/'
 ];
 
-// Middlewares
 app.use(cors({
   origin: function (origin, callback) {
-    // Limpiar el origen de barras finales para la comparación
     const sanitizedOrigin = origin ? origin.replace(/\/$/, '') : null;
     const isAllowed = !sanitizedOrigin || 
                      allowedOrigins.some(o => o.replace(/\/$/, '') === sanitizedOrigin) || 
                      process.env.NODE_ENV !== 'production';
-
     if (isAllowed) {
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -45,12 +41,18 @@ require('./src/services/firebaseService');
 // Inicializar Socket.io
 setupSocket(server);
 
-// Rutas
-app.use('/api/exchanges', require('./src/routes/exchangeRoutes'));
-app.use('/api/locker', require('./src/routes/lockerRoutes'));
-app.use('/api/posts', require('./src/routes/postRoutes'));
-app.use('/api/users', require('./src/routes/userRoutes'));
-app.use('/api/chat', require('./src/routes/chatRoutes'));
+// --- DEFINICIÓN EXPLÍCITA DE RUTAS ---
+const exchangeRoutes = require('./src/routes/exchangeRoutes');
+const lockerRoutes = require('./src/routes/lockerRoutes');
+const postRoutes = require('./src/routes/postRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+const chatRoutes = require('./src/routes/chatRoutes');
+
+app.use('/api/exchanges', exchangeRoutes);
+app.use('/api/locker', lockerRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/', (req, res) => {
   res.send('👕 SwapApp API is running...');
@@ -59,7 +61,7 @@ app.get('/', (req, res) => {
 app.get('/api/ping-protected', verifyToken, (req, res) => {
   res.json({ 
     success: true, 
-    message: `¡Conexión Exitosa! El servidor reconoce a: ${req.user.email}`,
+    message: `¡Conexión Exitosa!`,
     uid: req.user.uid
   });
 });

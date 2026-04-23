@@ -104,6 +104,17 @@ export const updateExchangeStatus = async (exchangeId, status) => {
   return await response.json();
 };
 
+export const adminUpdateExchangeStatus = async (exchangeId, status) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/exchanges/admin/${exchangeId}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ status })
+  });
+  if (!response.ok) throw new Error('Error en modo admin');
+  return await response.json();
+};
+
 // --- LOCKER ---
 export const requestLockerAssignment = async (exchangeId, userB_ID) => {
   const headers = await getAuthHeaders();

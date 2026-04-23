@@ -8,5 +8,6 @@ router.use(verifyToken);
 router.post('/', exchangeController.proposeExchange);
 router.get('/', exchangeController.getExchanges);
 router.put('/:exchangeId', exchangeController.updateExchangeStatus);
+router.put('/admin/:exchangeId', exchangeController.adminUpdateExchangeStatus);
 
 module.exports = router;

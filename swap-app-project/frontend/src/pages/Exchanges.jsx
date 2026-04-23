@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getExchanges, updateExchangeStatus, requestLockerAssignment } from '../services/api';
+import { getExchanges, updateExchangeStatus, requestLockerAssignment, adminUpdateExchangeStatus } from '../services/api';
 import { auth } from '../firebase';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
@@ -34,6 +34,16 @@ const Exchanges = () => {
     }
   };
 
+  const handleAdminAccept = async (exchangeId) => {
+    try {
+      await adminUpdateExchangeStatus(exchangeId, 'accepted');
+      toast.success('Modo Admin: Intercambio forzado a Aceptado');
+      fetchExchanges();
+    } catch (error) {
+      toast.error('Error en comando admin');
+    }
+  };
+
   const handleLockerRequest = async (exchange) => {
     try {
       const result = await requestLockerAssignment(exchange.id, exchange.requesterId);
@@ -58,10 +68,17 @@ const Exchanges = () => {
         ) : (
           exchanges.map((ex) => {
             const isRequester = ex.requesterId === auth.currentUser?.uid;
-            const otherUserRole = isRequester ? 'Receptor' : 'Solicitante';
             
             return (
-              <div key={ex.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6">
+              <div key={ex.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 relative">
+                {/* Botón Admin Flotante (Solo para pruebas) */}
+                <button 
+                  onClick={() => handleAdminAccept(ex.id)}
+                  className="absolute top-2 right-2 text-[8px] bg-red-100 text-red-600 px-2 py-1 rounded opacity-30 hover:opacity-100 transition-opacity font-bold uppercase"
+                >
+                  Admin: Force Accept
+                </button>
+
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   {/* Prenda Ofrecida */}
                   <div className="flex-1 text-center">
