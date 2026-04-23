@@ -8,9 +8,10 @@ import Profile from './pages/Profile';
 import Upload from './pages/Upload';
 import Chat from './pages/Chat';
 import ChatList from './pages/ChatList';
+import Exchanges from './pages/Exchanges';
 import Layout from './layouts/Layout';
 
-// Componente de protección (Lógica intacta)
+// Componente de protección
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <p>Cargando autenticación...</p>;
@@ -22,7 +23,6 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        {/* Notificaciones sin estilos */}
         <Toaster />
         
         <Routes>
@@ -52,6 +52,11 @@ function App() {
             <Route path="/chat/:conversationId" element={
               <ProtectedRoute>
                 <Chat />
+              </ProtectedRoute>
+            } />
+            <Route path="/exchanges" element={
+              <ProtectedRoute>
+                <Exchanges />
               </ProtectedRoute>
             } />
           </Route>

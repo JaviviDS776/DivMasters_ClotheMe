@@ -22,7 +22,7 @@ const setupSocket = (server) => {
 
     // Manejar envío de mensajes
     socket.on("send_message", async (data) => {
-      const { conversationId, senderId, text, receiverId } = data;
+      const { conversationId, senderId, text, receiverId, skipSave } = data;
 
       const newMessage = {
         senderId,
@@ -32,23 +32,25 @@ const setupSocket = (server) => {
       };
 
       try {
-        // Guardar en Firestore
-        await db.collection("conversations")
-          .doc(conversationId)
-          .collection("messages")
-          .add(newMessage);
+        if (!skipSave) {
+          // Guardar en Firestore solo si no se guardó vía REST
+          await db.collection("conversations")
+            .doc(conversationId)
+            .collection("messages")
+            .add(newMessage);
 
-        // Actualizar última actividad de la conversación
-        await db.collection("conversations").doc(conversationId).set({
-          lastMessage: text,
-          lastActivity: admin.firestore.FieldValue.serverTimestamp(),
-          participants: [senderId, receiverId]
-        }, { merge: true });
+          // Actualizar última actividad de la conversación
+          await db.collection("conversations").doc(conversationId).set({
+            lastMessage: text,
+            lastActivity: admin.firestore.FieldValue.serverTimestamp(),
+            participants: [senderId, receiverId]
+          }, { merge: true });
+        }
 
-        // Emitir a los usuarios en la sala
+        // Emitir a los usuarios en la sala en tiempo real
         io.to(conversationId).emit("receive_message", {
           ...newMessage,
-          timestamp: new Date().toISOString()
+          timestamp: { seconds: Math.floor(Date.now() / 1000) } // Mock para feedback inmediato
         });
 
       } catch (error) {

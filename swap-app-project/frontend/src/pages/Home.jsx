@@ -1,37 +1,106 @@
 import React, { useState, useEffect } from 'react';
-import { getPosts, toggleLike, addComment, getComments, getOrCreateConversation } from '../services/api';
+import { getPosts, toggleLike, addComment, getComments, getOrCreateConversation, getMyPosts, proposeExchange } from '../services/api';
 import toast from 'react-hot-toast';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import { Heart, MessageCircle, ArrowLeftRight, X, Search, Plus } from 'lucide-react';
+
+const ExchangeModal = ({ isOpen, onClose, targetPost }) => {
+  const [myPosts, setMyPosts] = useState([]);
+  const [selectedPostId, setSelectedPostId] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) fetchMyPosts();
+  }, [isOpen]);
+
+  const fetchMyPosts = async () => {
+    try {
+      const data = await getMyPosts();
+      setMyPosts(data);
+    } catch (error) {
+      toast.error('Error al cargar tus prendas');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedPostId) return toast.error('Selecciona una prenda para ofrecer');
+    setLoading(true);
+    try {
+      await proposeExchange({
+        recipientId: targetPost.authorId || targetPost.userId,
+        garmentWantedId: targetPost.id,
+        garmentOfferedId: selectedPostId
+      });
+      toast.success('¡Propuesta de intercambio enviada!');
+      onClose();
+    } catch (error) {
+      toast.error('Error al enviar propuesta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
+      <div className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-slate-100 rounded-full transition-colors">
+          <X size={20} className="text-slate-400" />
+        </button>
+        
+        <h2 className="text-2xl font-black mb-2 text-slate-800">Hacer un trato</h2>
+        <p className="text-sm text-slate-500 mb-8">Elige una de tus prendas para ofrecer por <span className="text-indigo-600 font-bold">{targetPost.title}</span></p>
+        
+        <div className="flex-grow overflow-y-auto grid grid-cols-2 gap-4 mb-8 pr-2">
+          {myPosts.length === 0 ? (
+            <div className="col-span-2 text-center py-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+              <p className="text-slate-400 text-sm font-medium">No tienes prendas publicadas</p>
+              <button onClick={() => navigate('/upload')} className="text-indigo-600 text-xs font-bold mt-2">¡Subir ahora!</button>
+            </div>
+          ) : (
+            myPosts.map(post => (
+              <div 
+                key={post.id} 
+                onClick={() => setSelectedPostId(post.id)}
+                className={`cursor-pointer rounded-3xl overflow-hidden border-4 transition-all duration-300 group ${
+                  selectedPostId === post.id ? 'border-indigo-600 ring-4 ring-indigo-50' : 'border-slate-100'
+                }`}
+              >
+                <div className="aspect-square relative overflow-hidden">
+                  <img src={post.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
+                </div>
+                <div className="p-3 bg-white">
+                  <p className="text-[10px] font-black uppercase text-slate-800 truncate">{post.title}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="flex gap-4">
+          <button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">
+            Cancelar
+          </button>
+          <button 
+            onClick={handleSubmit}
+            disabled={loading || myPosts.length === 0}
+            className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-100 transition-all"
+          >
+            {loading ? 'Enviando...' : 'Proponer Trato'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PostCard = ({ post }) => {
   const [likes, setLikes] = useState(post.likesCount || 0);
   const [isLiked, setIsLiked] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [loadingComments, setLoadingComments] = useState(false);
+  const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
   const navigate = useNavigate();
-
-  const handleInterest = async (e) => {
-    e.stopPropagation();
-    if (!auth.currentUser) {
-      toast.error('Debes iniciar sesión');
-      return;
-    }
-    if (auth.currentUser.uid === post.userId) {
-      toast.error('No puedes interesarte en tu propia prenda');
-      return;
-    }
-
-    try {
-      const conv = await getOrCreateConversation(post.userId);
-      // Redirigir al chat con el ID de la conversación y un mensaje inicial sugerido
-      navigate(`/chat/${conv.id}`, { state: { initialMessage: `¡Hola! Me interesa tu prenda: ${post.title}` } });
-    } catch (error) {
-      toast.error('Error al iniciar chat');
-    }
-  };
 
   const handleLike = async (e) => {
     e.stopPropagation();
@@ -44,136 +113,69 @@ const PostCard = ({ post }) => {
     }
   };
 
-  const fetchComments = async (e) => {
+  const handleInterest = async (e) => {
     e.stopPropagation();
-    if (!showComments) {
-      setLoadingComments(true);
-      try {
-        const data = await getComments(post.id);
-        setComments(data);
-      } catch (error) {
-        toast.error('Error al cargar comentarios');
-      } finally {
-        setLoadingComments(false);
-      }
-    }
-    setShowComments(!showComments);
-  };
-
-  const handleAddComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
+    const authorId = post.authorId || post.userId;
+    if (auth.currentUser.uid === authorId) return toast.error('Es tu propia prenda');
 
     try {
-      const comment = await addComment(post.id, newComment);
-      setComments([...comments, { ...comment, id: Date.now() }]);
-      setNewComment('');
-      toast.success('Comentario añadido');
+      const conv = await getOrCreateConversation(authorId);
+      navigate(`/chat/${conv.id}`, { state: { otherUser: { uid: authorId, displayName: post.authorName } } });
     } catch (error) {
-      toast.error('Error al añadir comentario');
+      toast.error('Error al iniciar chat');
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300">
-      {/* Image Container - Fixed Aspect Ratio for consistency */}
-      <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden group">
-        {post.imageUrl ? (
-          <img 
-            src={post.imageUrl} 
-            alt={post.title} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300">
-            Sin imagen
+    <>
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+        <div className="relative aspect-[1/1] bg-slate-100 overflow-hidden">
+          <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          
+          <button 
+            onClick={handleLike}
+            className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md shadow-lg transition-all ${
+              isLiked ? 'bg-rose-500 text-white' : 'bg-white/80 text-slate-600 hover:bg-white'
+            }`}
+          >
+            <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+          </button>
+
+          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm">
+             <p className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter italic">NUEVA PRENDA</p>
           </div>
-        )}
-        
-        {/* Quick Action Overlay (Like) */}
-        <button 
-          onClick={handleLike}
-          className={`absolute bottom-3 right-3 p-2 rounded-full shadow-md transition-all ${
-            isLiked ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-600 hover:bg-white'
-          }`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Info Content */}
-      <div className="p-4 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-2">
-          <h2 className="text-lg font-bold text-gray-900 line-clamp-1">{post.title}</h2>
-          <span className="text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-600 rounded-lg shrink-0 ml-2">
-            Nuevo
-          </span>
         </div>
-        
-        <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-grow">
-          {post.description}
-        </p>
 
-        {/* Footer info */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white uppercase">
-              {post.authorName?.charAt(0) || 'U'}
+        <div className="p-6 flex flex-col flex-grow">
+          <h2 className="text-lg font-black text-slate-800 mb-1 truncate">{post.title}</h2>
+          <p className="text-slate-500 text-xs line-clamp-2 mb-6 h-8">{post.description}</p>
+
+          <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-xs font-black">
+                {post.authorName?.charAt(0) || 'U'}
+              </div>
+              <span className="text-[11px] font-bold text-slate-600">{post.authorName}</span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
-                {post.authorName}
-              </span>
+            
+            <div className="flex gap-2">
+              <button onClick={handleInterest} className="p-2.5 bg-slate-50 text-slate-600 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                <MessageCircle size={18} />
+              </button>
               <button 
-                onClick={handleInterest}
-                className="text-[10px] text-blue-600 font-bold hover:underline text-left"
+                onClick={() => setIsExchangeModalOpen(true)}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
               >
-                Me interesa
+                <ArrowLeftRight size={14} />
+                Canjear
               </button>
             </div>
           </div>
-          
-          <button 
-            onClick={fetchComments}
-            className="text-xs text-gray-400 hover:text-blue-500 transition-colors flex items-center space-x-1"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span>{post.commentsCount || 0}</span>
-          </button>
         </div>
       </div>
 
-      {/* Comments Drawer (Minimalist) */}
-      {showComments && (
-        <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 max-h-48 overflow-y-auto">
-          {loadingComments ? (
-            <p className="text-[10px] text-center text-gray-400">Cargando...</p>
-          ) : (
-            <div className="space-y-2">
-              {comments.map((c) => (
-                <div key={c.id} className="text-xs">
-                  <span className="font-bold text-gray-800 mr-1">{c.userName}:</span>
-                  <span className="text-gray-600">{c.content}</span>
-                </div>
-              ))}
-              <form onSubmit={handleAddComment} className="flex mt-2">
-                <input 
-                  type="text" 
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Comentar..." 
-                  className="w-full text-xs bg-white border border-gray-200 rounded-full px-3 py-1 outline-none focus:border-blue-400"
-                />
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      <ExchangeModal isOpen={isExchangeModalOpen} onClose={() => setIsExchangeModalOpen(false)} targetPost={post} />
+    </>
   );
 };
 
@@ -182,9 +184,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
+  useEffect(() => { fetchPosts(); }, []);
 
   const fetchPosts = async () => {
     try {
@@ -199,40 +199,43 @@ const Home = () => {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
     </div>
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">ClotheMe</h1>
-          <p className="text-sm text-gray-500 font-medium">Intercambia estilo, crea comunidad.</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tightest mb-2 italic">DESCUBRE</h1>
+          <p className="text-slate-500 font-medium">Intercambia estilo sin gastar un centavo.</p>
         </div>
-        <button 
-          onClick={() => navigate('/upload')}
-          className="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition-all shadow-sm active:scale-95 text-sm"
-        >
-          Publicar prenda
-        </button>
+        <div className="flex gap-3">
+          <div className="relative hidden lg:block">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input type="text" placeholder="Buscar estilo..." className="bg-white border-none rounded-2xl pl-12 pr-6 py-3.5 w-64 shadow-sm focus:ring-4 focus:ring-indigo-500/10 transition-all" />
+          </div>
+          <button 
+            onClick={() => navigate('/upload')}
+            className="bg-black text-white px-8 py-3.5 rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl active:scale-95 text-sm flex items-center gap-2"
+          >
+            <Plus size={18} strokeWidth={3} />
+            PUBLICAR
+          </button>
+        </div>
       </div>
 
       {posts.length === 0 ? (
-        <div className="text-center py-24 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-          <div className="mb-4 text-gray-300">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
+        <div className="text-center py-32 bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ArrowLeftRight size={32} className="text-slate-300" />
           </div>
-          <p className="text-gray-500 font-medium text-lg">Aún no hay tesoros por aquí</p>
-          <button className="mt-2 text-blue-600 font-bold hover:underline">¡Sé el primero!</button>
+          <p className="text-slate-400 font-bold text-xl">Tu armario está esperando</p>
+          <p className="text-slate-400 text-sm mt-1">Sé el primero en publicar una prenda hoy.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {posts.map(post => (
-            <PostCard key={post.id} post={post} />
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {posts.map(post => <PostCard key={post.id} post={post} />)}
         </div>
       )}
     </div>

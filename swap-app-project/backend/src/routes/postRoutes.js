@@ -10,6 +10,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.get('/', postController.getPosts);
 
 // Rutas protegidas
+router.get('/my-posts', verifyToken, postController.getMyPosts);
 router.post('/', verifyToken, upload.single('image'), postController.createPost);
 router.post('/:id/like', verifyToken, postController.toggleLike);
 router.post('/:id/comment', verifyToken, postController.addComment);

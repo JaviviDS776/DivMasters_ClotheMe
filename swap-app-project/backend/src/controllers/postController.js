@@ -76,6 +76,35 @@ exports.getPosts = async (req, res) => {
   }
 };
 
+// 2.1 Obtener mis propios posts
+exports.getMyPosts = async (req, res) => {
+  try {
+    const { uid } = req.user;
+    
+    // Quitamos el orderBy de la consulta de Firestore para evitar errores de índice
+    const snapshot = await db.collection('posts')
+      .where('authorId', '==', uid)
+      .get();
+      
+    const posts = [];
+    snapshot.forEach(doc => {
+      posts.push({ id: doc.id, ...doc.data() });
+    });
+
+    // Ordenamos manualmente por fecha descendente
+    posts.sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error('Error al obtener mis posts:', error);
+    res.status(500).json({ error: 'Error al obtener tus prendas' });
+  }
+};
+
 // 3. Alternar Like (Like/Unlike)
 exports.toggleLike = async (req, res) => {
   try {
