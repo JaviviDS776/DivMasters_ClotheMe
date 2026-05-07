@@ -2,12 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const http = require('http');
-const { Server } = require('socket.io');
-const setupSocket = require('./src/socket/socketManager');
 
 const app = express();
-const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 const verifyToken = require('./src/middleware/authMiddleware');
 
@@ -38,9 +34,6 @@ app.use(express.json());
 // Inicializar Firebase
 require('./src/services/firebaseService');
 
-// Inicializar Socket.io
-setupSocket(server);
-
 // --- DEFINICIÓN EXPLÍCITA DE RUTAS ---
 const exchangeRoutes = require('./src/routes/exchangeRoutes');
 const lockerRoutes = require('./src/routes/lockerRoutes');
@@ -66,8 +59,11 @@ app.get('/api/ping-protected', verifyToken, (req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`✅ Servidor corriendo en puerto ${PORT}`);
+  console.log('--- RUTAS CARGADAS ---');
+  console.log('Locker Routes: /api/locker/seed, /api/locker/all, /api/locker/verify, /api/locker/assign');
+  console.log('----------------------');
 });
 
 module.exports = app;

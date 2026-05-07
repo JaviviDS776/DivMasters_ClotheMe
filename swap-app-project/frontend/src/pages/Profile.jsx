@@ -4,7 +4,8 @@ import { auth } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
 import toast from 'react-hot-toast';
-import { User, MapPin, Mail, LogOut, UserPlus, UserMinus, Search, Edit2, X, Check, Users } from 'lucide-react';
+import Avatar from '../components/Avatar';
+import { X, Edit2, Mail, MapPin, LogOut, Check, Users, UserPlus, Search, User, UserMinus } from 'lucide-react';
 
 const Profile = () => {
   const { user: authUser } = useAuth();
@@ -129,13 +130,12 @@ const Profile = () => {
         
         <div className="relative flex flex-col md:flex-row items-center md:items-end gap-6">
           <div className="relative">
-            {profile?.photoURL ? (
-              <img src={profile.photoURL} alt="Avatar" className="w-32 h-32 rounded-[2rem] object-cover border-4 border-white shadow-xl" />
-            ) : (
-              <div className="w-32 h-32 bg-indigo-100 rounded-[2rem] flex items-center justify-center text-indigo-600 border-4 border-white shadow-xl">
-                <User size={48} strokeWidth={1.5} />
-              </div>
-            )}
+            <Avatar 
+              src={profile?.photoURL} 
+              alt={profile?.displayName} 
+              size="xxl" 
+              className="border-4 border-white shadow-xl"
+            />
             <button 
               onClick={() => setIsEditing(!isEditing)}
               className="absolute -bottom-2 -right-2 p-2.5 bg-white text-slate-600 rounded-2xl shadow-lg hover:bg-slate-50 transition-all border border-slate-100"
@@ -230,7 +230,7 @@ const Profile = () => {
                     <div key={u.uid} className="flex items-center justify-between p-4 bg-slate-50 rounded-3xl hover:bg-indigo-50 transition-all group">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <img src={u.photoURL || 'https://via.placeholder.com/40'} alt="" className="w-10 h-10 rounded-2xl object-cover" />
+                          <Avatar src={u.photoURL} alt={u.displayName} size="sm" className="rounded-2xl" />
                           {u.isOnline && (
                             <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
                           )}
@@ -284,7 +284,7 @@ const Profile = () => {
                 searchResults.map(u => (
                   <div key={u.uid} className="flex items-center justify-between p-4 bg-slate-50 rounded-3xl hover:bg-indigo-50 transition-all group">
                     <div className="flex items-center gap-3">
-                      <img src={u.photoURL || 'https://via.placeholder.com/40'} alt="" className="w-10 h-10 rounded-2xl object-cover" />
+                      <Avatar src={u.photoURL} alt={u.displayName} size="sm" className="rounded-2xl" />
                       <div>
                         <p className="text-sm font-black text-slate-800">{u.displayName}</p>
                         <p className="text-[10px] text-slate-500 font-medium">{u.email}</p>
@@ -332,7 +332,7 @@ const Profile = () => {
                     <div key={f.uid} className="flex items-center justify-between p-4 border border-slate-50 rounded-3xl hover:border-indigo-100 transition-all">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <img src={f.photoURL || 'https://via.placeholder.com/40'} alt="" className="w-10 h-10 rounded-2xl object-cover" />
+                          <Avatar src={f.photoURL} alt={f.displayName} size="sm" className="rounded-2xl" />
                           {isOnline && (
                             <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
                           )}

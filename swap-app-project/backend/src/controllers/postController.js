@@ -4,12 +4,12 @@ const { uploadImage } = require('../services/cloudinaryService');
 // 1. Crear un nuevo post
 exports.createPost = async (req, res) => {
   try {
-    const { title, description } = req.body;
-    const { uid, name, email } = req.user; // Obtenido del authMiddleware
+    const { title, description, lockerZone } = req.body;
+    const { uid, name, email, picture, photoURL: tokenPhotoURL } = req.user; // Obtenido del authMiddleware
     let imageUrl = req.body.imageUrl;
 
     console.log('--- Iniciando creación de post ---');
-    console.log('Datos recibidos:', { title, description });
+    console.log('Datos recibidos:', { title, description, lockerZone });
     console.log('Usuario:', { uid, name, email });
 
     if (!title) {
@@ -37,10 +37,12 @@ exports.createPost = async (req, res) => {
     const newPost = {
       title,
       description: description || '',
+      lockerZone: lockerZone || 'CUCEI - General',
       imageUrl,
       authorId: uid,
       authorName: name || 'Usuario',
       authorEmail: email,
+      authorPhotoURL: picture || tokenPhotoURL || '',
       likesCount: 0,
       commentsCount: 0,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
