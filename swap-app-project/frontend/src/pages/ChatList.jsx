@@ -3,6 +3,7 @@ import { getConversations } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import toast from 'react-hot-toast';
+import Avatar from '../components/Avatar';
 
 const ChatList = () => {
   const [conversations, setConversations] = useState([]);
@@ -67,13 +68,7 @@ const ChatList = () => {
                 className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-center space-x-4"
               >
                 <div className="relative">
-                  {other.photoURL ? (
-                    <img src={other.photoURL} alt={other.displayName} className="w-12 h-12 rounded-full object-cover border" />
-                  ) : (
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                      {other.displayName.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar src={other.photoURL} alt={other.displayName} size="md" />
                   {isOnline && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                   )}

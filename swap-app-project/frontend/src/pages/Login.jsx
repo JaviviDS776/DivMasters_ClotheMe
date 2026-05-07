@@ -29,7 +29,7 @@ const Login = () => {
       if (!userDoc.exists()) {
         await setDoc(userDocRef, {
           uid: user.uid,
-          username: user.displayName,
+          displayName: user.displayName,
           email: user.email,
           photoURL: user.photoURL,
           reputation: 0,

@@ -4,6 +4,7 @@ import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { sendMessage, getUserById } from '../services/api';
 import toast from 'react-hot-toast';
+import Avatar from '../components/Avatar';
 
 const Chat = () => {
   const { conversationId } = useParams();
@@ -89,13 +90,7 @@ const Chat = () => {
           </svg>
         </button>
         
-        {otherUser?.photoURL ? (
-          <img src={otherUser.photoURL} alt="" className="w-10 h-10 rounded-full object-cover border" />
-        ) : (
-          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-            {otherUser?.displayName?.charAt(0).toUpperCase() || '?'}
-          </div>
-        )}
+        <Avatar src={otherUser?.photoURL} alt={otherUser?.displayName} size="sm" />
         
         <div>
           <h2 className="font-bold text-gray-800">{otherUser?.displayName || 'Chat'}</h2>

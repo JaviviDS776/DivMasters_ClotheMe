@@ -8,7 +8,8 @@ router.post('/assign', verifyToken, lockerController.assignLocker);
 
 // Ruta de prueba
 router.get('/test', (req, res) => res.json({ message: 'Locker routes are working' }));
-router.get('/seed', lockerController.seedLockers);
+router.get('/seed', verifyToken, lockerController.seedLockers);
+router.get('/all', verifyToken, lockerController.getAllLockers);
 
 // Ruta para el ESP32 (NO requiere login de usuario, usa API Key)
 router.post('/verify', lockerController.verifyLockerCode);

@@ -40,9 +40,37 @@ exports.getProfile = async (req, res) => {
       return res.status(200).json({ uid, ...newUser });
     }
 
-    // Actualizar última actividad cada vez que pide el perfil
-    await userRef.update({ lastActive: now });
-    res.status(200).json({ uid, ...doc.data() });
+    // "HEAL" logic: Si el documento ya existe pero le faltan campos críticos, los actualizamos
+    const existingData = doc.data();
+    const updates = {};
+    let shouldUpdate = false;
+
+    // Si tiene 'username' pero no 'displayName', migramos
+    if (!existingData.displayName && existingData.username) {
+      updates.displayName = existingData.username;
+      shouldUpdate = true;
+    } else if (!existingData.displayName && name) {
+      updates.displayName = name;
+      shouldUpdate = true;
+    }
+
+    // Si no tiene photoURL y la tenemos en el token, la actualizamos
+    if (!existingData.photoURL && (picture || photoURL)) {
+      updates.photoURL = picture || photoURL;
+      shouldUpdate = true;
+    }
+
+    // Siempre actualizamos la última actividad
+    updates.lastActive = now;
+
+    await userRef.update(updates);
+    
+    // Devolvemos los datos actualizados
+    res.status(200).json({ 
+      uid, 
+      ...existingData, 
+      ...updates 
+    });
   } catch (error) {
     console.error('ERROR en getProfile:', error);
     res.status(500).json({ 

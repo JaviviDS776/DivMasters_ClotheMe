@@ -3,7 +3,8 @@ import { getPosts, toggleLike, addComment, getComments, getOrCreateConversation,
 import toast from 'react-hot-toast';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, ArrowLeftRight, X, Search, Plus } from 'lucide-react';
+import Avatar from '../components/Avatar';
+import { Search, Plus, X, Heart, Box, MessageCircle, ArrowLeftRight } from 'lucide-react';
 
 const ExchangeModal = ({ isOpen, onClose, targetPost }) => {
   const [myPosts, setMyPosts] = useState([]);
@@ -141,20 +142,26 @@ const PostCard = ({ post }) => {
             <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
           </button>
 
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm">
-             <p className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter italic">NUEVA PRENDA</p>
+          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 border border-indigo-50">
+             <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+             <p className="text-[9px] font-black text-slate-700 uppercase tracking-tighter italic">
+               {post.lockerZone || 'Casillero Disponible'}
+             </p>
           </div>
         </div>
 
         <div className="p-6 flex flex-col flex-grow">
           <h2 className="text-lg font-black text-slate-800 mb-1 truncate">{post.title}</h2>
-          <p className="text-slate-500 text-xs line-clamp-2 mb-6 h-8">{post.description}</p>
+          <p className="text-slate-500 text-xs line-clamp-2 mb-4 h-8">{post.description}</p>
+          
+          <div className="flex items-center gap-2 mb-6 bg-slate-50 p-2.5 rounded-2xl border border-slate-100/50">
+            <Box size={14} className="text-indigo-500" />
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Recogida: <span className="text-slate-700">{post.lockerZone || 'Pendiente'}</span></span>
+          </div>
 
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-xs font-black">
-                {post.authorName?.charAt(0) || 'U'}
-              </div>
+              <Avatar src={post.authorPhotoURL} alt={post.authorName} size="xs" />
               <span className="text-[11px] font-bold text-slate-600">{post.authorName}</span>
             </div>
             

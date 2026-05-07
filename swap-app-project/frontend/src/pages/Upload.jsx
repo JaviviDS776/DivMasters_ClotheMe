@@ -7,6 +7,7 @@ import { Image as ImageIcon, UploadCloud, X, Loader2 } from 'lucide-react';
 const Upload = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [lockerZone, setLockerZone] = useState('');
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -58,7 +59,7 @@ const Upload = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !image) return toast.error('Título e imagen son requeridos');
+    if (!title || !image || !lockerZone) return toast.error('Título, imagen y ubicación son requeridos');
 
     setLoading(true);
     const toastId = toast.loading('Preparando prenda...');
@@ -68,6 +69,7 @@ const Upload = () => {
       const formData = new FormData();
       formData.append('title', title);
       formData.append('description', description);
+      formData.append('lockerZone', lockerZone);
       formData.append('image', compressedImage);
 
       await createPost(formData);
@@ -137,6 +139,22 @@ const Upload = () => {
               placeholder="Cuéntanos más sobre el estado, talla..."
               rows="4"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-4">Zona de Casillero Inteligente</label>
+            <select
+              value={lockerZone || ''}
+              onChange={(e) => setLockerZone(e.target.value)}
+              className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-slate-700 appearance-none cursor-pointer"
+              required
+            >
+              <option value="" disabled>Selecciona una ubicación de entrega</option>
+              <option value="CUCEI - Módulo J">CUCEI - Módulo J (Entrada Principal)</option>
+              <option value="CUCEI - Biblioteca">CUCEI - Biblioteca Central</option>
+              <option value="CUCEI - Módulo O">CUCEI - Módulo O</option>
+              <option value="CUCEI - Rectoría">CUCEI - Rectoría</option>
+            </select>
           </div>
         </div>
 

@@ -79,7 +79,7 @@ Este proyecto es un Monorepo (Frontend y Backend en el mismo lugar).
 
 ### 1. Clonar el repositorio
 ```bash
-git clone [https://github.com/tu-usuario/swap-app.git](https://github.com/tu-usuario/swap-app.git)
+git clone https://github.com/tu-usuario/swap-app.git
 cd swap-app
 ```
 
@@ -93,10 +93,11 @@ npm install
 
 ```Properties
 PORT=3000
-FIREBASE_DB_URL=[https://tu-proyecto-rtdb.firebaseio.com/](https://tu-proyecto-rtdb.firebaseio.com/)
+FIREBASE_DB_URL=https://tu-proyecto-rtdb.firebaseio.com/
+SERVICE_ACCOUNT=TU_JSON_EN_BASE64
+IOT_API_KEY=tu_clave_secreta_iot
 ```
-**Llave de Servicio:** Coloca tu archivo serviceAccountKey.json de Firebase Admin SDK en backend/. Asegúrate de que esté en .gitignore.
-
+**Llave de Servicio (Recomendado para Vercel):** Convierta su `serviceAccountKey.json` a Base64 y colóquelo en la variable `SERVICE_ACCOUNT`.
 
 ### 3. Configurar Frontend
 ```Bash
@@ -112,33 +113,37 @@ VITE_PROJECT_ID=tu-proyecto
 VITE_STORAGE_BUCKET=tu-proyecto.firebasestorage.app
 VITE_MESSAGING_SENDER_ID=123456...
 VITE_APP_ID=1:12345...
-VITE_API_URL=http://localhost:3000 # O tu URL de Vercel en producción
+VITE_API_URL=http://localhost:3000
 ```
-**Ejecución Local:**
-Necesitarás dos terminales abiertas.
 
-Terminal 1 (Backend):
+---
 
-```Bash
-cd backend
-npm run dev
-# Corre en http://localhost:3000
+## Seguridad & Reglas de Firebase
+
+### Firestore Rules
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
 ```
-Terminal 2 (Frontend):
 
-```Bash
-cd frontend
-npm run dev
-# Corre en http://localhost:5173
+### Realtime Database Rules
+```json
+{
+  "rules": {
+    "lockers": { ".read": true, ".write": "auth != null" },
+    "qr_indices": { ".read": true, ".write": "auth != null" }
+  }
+}
 ```
-## Seguridad Implementada
-- **Validación de Dominio:** El Frontend expulsa y borra usuarios que no sean @alumnos.udg.mx.
 
-- **Firestore Rules:** Reglas estrictas que impiden escrituras de usuarios no verificados o intentos de modificar perfiles ajenos.
-
-- **Middleware API:** El Backend verifica cada petición con admin.auth().verifyIdToken(). Sin un JWT válido de Google, el servidor rechaza la conexión.
-
-- **CORS:** Configurado para aceptar peticiones solo del dominio del Frontend.
+---
 
 ## Lógica del Casillero (IoT)
 El sistema embebido (ESP32) opera como una máquina de estados conectada a Firebase Realtime Database:
