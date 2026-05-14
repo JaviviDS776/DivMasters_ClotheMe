@@ -10,7 +10,9 @@ const { verifyToken } = require('./src/middleware/authMiddleware');
 const allowedOrigins = [
   'http://localhost:5173', 
   'https://swapappfrontend.vercel.app',
-  'https://swapappfrontend.vercel.app/'
+  'https://swapappfrontend.vercel.app/',
+  'http://127.0.0.1:5500',
+  'http://localhost:5500'
 ];
 
 app.use(cors({
