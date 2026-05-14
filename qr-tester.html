@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClotheMe - Terminal de Casillero</title>
+    <title>ClotheMe - Terminal Multi-Casillero</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -23,26 +23,24 @@
             overflow-x: hidden;
         }
 
-        .locker-perspective {
-            perspective: 2000px;
+        .locker-container {
             display: flex;
+            gap: 40px;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px;
+            perspective: 2000px;
         }
 
         .locker-case {
             position: relative;
-            width: 100%;
-            max-width: 400px;
-            height: 700px;
+            width: 320px;
+            height: 600px;
             background: var(--locker-color);
-            border: 12px solid var(--locker-border);
-            border-radius: 15px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8),
-                        inset 0 0 30px rgba(0,0,0,0.5);
-            overflow: visible;
+            border: 10px solid var(--locker-border);
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
         }
 
         .compartment-interior {
@@ -59,339 +57,195 @@
         }
 
         .item-placeholder {
-            font-size: 8rem;
-            filter: drop-shadow(0 0 20px rgba(52, 152, 219, 0.3));
+            font-size: 6rem;
             animation: float 3s ease-in-out infinite;
         }
 
         @keyframes float {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-15px); }
         }
 
         .locker-door {
             position: absolute;
             inset: -2px;
             background: var(--locker-color);
-            border: 4px solid var(--locker-border);
-            border-radius: 8px;
+            border: 3px solid var(--locker-border);
+            border-radius: 6px;
             z-index: 20;
             transform-origin: left;
-            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 15px;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.3);
         }
 
         .locker-door.open {
-            transform: rotateY(-115deg);
-            box-shadow: 20px 0 40px rgba(0,0,0,0.6);
+            transform: rotateY(-110deg);
         }
 
         .control-panel {
             background: var(--screen-bg);
-            border: 4px solid #333;
-            border-radius: 10px;
-            padding: 15px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 10px;
             height: 100%;
             display: flex;
             flex-direction: column;
-            box-shadow: inset 0 0 15px rgba(0,255,0,0.1);
-            position: relative;
-        }
-
-        .screen-header {
-            font-family: 'Orbitron', sans-serif;
-            color: var(--accent);
-            text-align: center;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
         }
 
         .status-led {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             display: inline-block;
-            margin-right: 8px;
-            box-shadow: 0 0 8px currentColor;
+            margin-right: 6px;
         }
 
-        .led-wait { color: #f1c40f; background: #f1c40f; }
-        .led-active { color: #2ecc71; background: #2ecc71; animation: blink 1s infinite; }
-        .led-error { color: #e74c3c; background: #e74c3c; }
+        .led-wait { background: #f1c40f; box-shadow: 0 0 5px #f1c40f; }
+        .led-active { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; animation: blink 1s infinite; }
+        .led-error { background: #e74c3c; box-shadow: 0 0 5px #e74c3c; }
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-        #reader {
-            width: 100% !important;
-            border: none !important;
-            background: #000 !important;
-        }
-
-        #reader__scan_region {
-            background: #000 !important;
-        }
-
-        .scan-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 200px;
-            height: 200px;
-            border: 2px solid var(--accent);
-            pointer-events: none;
-            box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
-            display: none;
-        }
-
-        .scan-active .scan-overlay { display: block; }
-
-        /* Admin Panels Styling */
+        /* Admin / Config Styles */
         .admin-sidebar {
             position: fixed;
             top: 0;
-            left: -320px;
-            width: 320px;
+            left: -300px;
+            width: 300px;
             height: 100vh;
             background: #1a1a1a;
             border-right: 1px solid #333;
             z-index: 1000;
             transition: left 0.3s ease;
-            display: flex;
-            flex-direction: column;
         }
-
-        .admin-sidebar.open {
-            left: 0;
-        }
-
+        .admin-sidebar.open { left: 0; }
         .admin-toggle {
             position: absolute;
-            right: -50px;
+            right: -45px;
             top: 20px;
             background: #1a1a1a;
-            border: 1px solid #333;
-            border-left: none;
             padding: 10px;
             border-radius: 0 5px 5px 0;
             cursor: pointer;
         }
 
-        .config-panel-floating {
+        .config-btn {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 100;
         }
-
-        .config-content {
-            display: none;
-            background: #1a1a1a;
-            border: 1px solid #333;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-            width: 250px;
-        }
-
-        .config-content.show { display: block; }
-
-        .locker-grid-item {
-            background: #000;
-            border: 1px solid #333;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 10px;
-        }
-
-        .status-badge {
-            padding: 2px 5px;
-            border-radius: 3px;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-
-        .status-AVAILABLE { background: #2ecc71; color: black; }
-        .status-RESERVED { background: #f1c40f; color: black; }
-        .status-OCCUPIED { background: #e74c3c; color: white; }
     </style>
 </head>
 <body>
 
-    <!-- Sidebar de Administración -->
+    <!-- Sidebar Admin -->
     <div id="admin-sidebar" class="admin-sidebar">
         <button onclick="toggleAdmin()" class="admin-toggle">📊</button>
-        <div class="p-4 flex-1 overflow-y-auto">
-            <h2 class="text-xl font-bold text-blue-500 mb-6 font-[Orbitron]">PANEL CONTROL</h2>
+        <div class="p-6">
+            <h2 class="text-xl font-bold text-blue-500 mb-6 font-[Orbitron]">CONTROL</h2>
+            <button onclick="seedLockers()" class="w-full bg-blue-600 mb-2 py-2 rounded text-xs font-bold uppercase">Reiniciar Sistema</button>
+            <button onclick="refreshData()" class="w-full bg-gray-800 mb-6 py-2 rounded text-xs font-bold uppercase">Actualizar Estados</button>
             
-            <!-- Acciones Rápidas -->
-            <div class="mb-8 space-y-2">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Acciones Sistema</h3>
-                <button onclick="seedLockers()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] py-2 rounded font-bold uppercase">Reiniciar y Crear L01-L05</button>
-                <button onclick="refreshData()" class="w-full bg-gray-800 hover:bg-gray-700 text-white text-[10px] py-2 rounded font-bold uppercase">Actualizar Estados</button>
-            </div>
-
-            <!-- Lista de Casilleros -->
-            <div class="mb-8">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Estado de Casilleros</h3>
-                <div id="lockers-list" class="space-y-2">
-                    <p class="text-[10px] text-gray-600 italic text-center">Cargando datos...</p>
-                </div>
-            </div>
-
-            <!-- Intercambios Activos -->
-            <div class="mb-8">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Intercambios Activos</h3>
-                <div id="exchanges-list" class="space-y-2">
-                    <p class="text-[10px] text-gray-600 italic text-center">No hay intercambios activos</p>
-                </div>
-            </div>
-        </div>
-        <div class="p-4 border-t border-gray-800 text-[9px] text-gray-600">
-            Terminal IoT v3.1 &bull; Admin Mode
-        </div>
-    </div>
-
-    <!-- Configuración Flotante -->
-    <div class="config-panel-floating">
-        <button onclick="toggleConfig()" class="bg-gray-800 p-2 rounded-full border border-gray-600 hover:bg-gray-700">
-            ⚙️
-        </button>
-        <div id="config-content" class="config-content shadow-2xl">
-            <h3 class="text-sm font-bold mb-3 text-blue-400">AJUSTES CONEXIÓN</h3>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block text-gray-400 mb-1">Backend URL</label>
-                    <input type="text" id="apiUrl" value="http://localhost:3000" class="w-full bg-black border border-gray-700 rounded p-1 outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-gray-400 mb-1">API Key</label>
-                    <input type="password" id="apiKey" value="clotheme_secret_iot_token_2024" class="w-full bg-black border border-gray-700 rounded p-1 outline-none focus:border-blue-500">
-                </div>
+            <div id="admin-info" class="space-y-4">
+                <p class="text-[10px] text-gray-500 text-center italic">Cargando datos...</p>
             </div>
         </div>
     </div>
 
-    <div class="locker-perspective">
-        <div class="locker-case">
-            
-            <!-- Interior del Casillero -->
+    <!-- Configuración -->
+    <button onclick="toggleConfig()" class="config-btn bg-gray-800 p-3 rounded-full border border-gray-600">⚙️</button>
+    <div id="config-panel" class="hidden fixed top-20 right-20 bg-[#1a1a1a] p-6 rounded-lg border border-gray-700 z-[200] w-64 shadow-2xl">
+        <h3 class="text-sm font-bold text-blue-400 mb-4 uppercase">Configuración</h3>
+        <div class="space-y-4 text-[10px]">
+            <div>
+                <label class="block text-gray-400 mb-1">Backend URL</label>
+                <input type="text" id="apiUrl" value="http://localhost:3000" class="w-full bg-black border border-gray-700 rounded p-2">
+            </div>
+            <div>
+                <label class="block text-gray-400 mb-1">API Key</label>
+                <input type="password" id="apiKey" value="clotheme_secret_iot_token_2024" class="w-full bg-black border border-gray-700 rounded p-2">
+            </div>
+            <div>
+                <label class="block text-gray-400 mb-1">Admin Token</label>
+                <input type="password" id="adminToken" placeholder="Pegar token aquí..." class="w-full bg-black border border-gray-700 rounded p-2">
+            </div>
+        </div>
+    </div>
+
+    <!-- Área de Casilleros -->
+    <div class="locker-container">
+        
+        <!-- Casillero 1 -->
+        <div class="locker-case" id="locker-A">
             <div class="compartment-interior">
-                <div id="interior-item" class="item-placeholder">📦</div>
-                <div class="mt-8 text-center px-6">
-                    <div id="interior-locker-id" class="text-[10px] text-gray-500 font-bold mb-1">CASILLERO --</div>
-                    <p id="interior-msg" class="text-blue-400 font-bold text-sm uppercase">ESPERANDO ACCIÓN...</p>
-                    <button id="close-door-btn" onclick="closeLocker()" class="mt-4 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all">
-                        Cerrar Puerta
-                    </button>
+                <div id="item-A" class="item-placeholder">📦</div>
+                <div class="mt-4 text-center px-4">
+                    <p id="msg-A" class="text-blue-400 font-bold text-xs uppercase">Esperando...</p>
+                    <button onclick="closeLocker('A')" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-bold">CERRAR</button>
                 </div>
             </div>
-
-            <!-- Puerta del Casillero -->
-            <div id="locker-door" class="locker-door">
+            <div class="locker-door" id="door-A">
                 <div class="control-panel">
-                    <div class="screen-header">
-                        <h1 class="text-xl font-bold tracking-tighter">CLOTHE<span>ME</span></h1>
-                        <p class="text-[10px] text-gray-500">SMART LOCKER SYSTEM v3.1</p>
+                    <h1 class="text-center font-bold text-sm mb-4 font-[Orbitron]">CLOTHE-ME</h1>
+                    <div class="bg-black/50 p-2 rounded border border-gray-800 mb-4">
+                        <div class="flex items-center text-[10px]">
+                            <span id="led-A" class="status-led led-wait"></span>
+                            <span id="status-text-A">LISTO</span>
+                        </div>
                     </div>
-
-                    <div class="flex-1 flex flex-col justify-between">
-                        <!-- Estado -->
-                        <div class="bg-black/50 p-3 rounded border border-gray-800 mb-4">
-                            <div class="flex items-center mb-1">
-                                <span id="status-led" class="status-led led-wait"></span>
-                                <span id="status-text" class="text-[10px] uppercase font-bold text-gray-400">Sistema Listo</span>
-                            </div>
-                            <div id="mode-text" class="text-[10px] text-blue-500 font-bold">ESCANEÉ SU CÓDIGO QR</div>
-                        </div>
-
-                        <!-- Visor de Escáner -->
-                        <div class="relative flex-1 bg-black rounded overflow-hidden border border-gray-800 mb-4" id="scanner-container">
-                            <div id="reader"></div>
-                            <div class="scan-overlay"></div>
-                            
-                            <!-- Placeholder cuando no está activo -->
-                            <div id="scanner-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-700">
-                                <span class="text-4xl mb-2">📷</span>
-                                <span class="text-[10px] uppercase">Cámara Desactivada</span>
-                            </div>
-                        </div>
-
-                        <div id="next-action-panel" class="hidden mb-4 p-2 bg-blue-900/30 border border-blue-500 rounded text-center">
-                            <p class="text-[9px] text-blue-300 font-bold uppercase mb-2">¡Depósito exitoso!</p>
-                            <button onclick="triggerNextAction()" class="w-full bg-blue-500 text-white py-2 rounded text-[10px] font-bold uppercase">
-                                Abrir Retirada (A)
-                            </button>
-                        </div>
-
-                        <button id="start-btn" onclick="toggleScanner()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded font-bold text-sm shadow-[0_0_15px_rgba(52,152,219,0.3)] transition-all uppercase">
-                            Activar Escáner
-                        </button>
-                        
-                        <button id="stop-btn" onclick="stopScanner()" class="hidden w-full bg-red-600 hover:bg-red-500 text-white py-3 rounded font-bold text-sm transition-all uppercase">
-                            Detener
-                        </button>
-
-                        <!-- Manual Input -->
-                        <div class="mt-4 pt-4 border-t border-gray-800">
-                            <div class="flex gap-1">
-                                <input type="text" id="manualCode" placeholder="CÓDIGO MANUAL..." class="flex-1 bg-black border border-gray-800 rounded p-2 text-[10px] text-green-500 focus:border-green-500 outline-none">
-                                <button onclick="verifyCode(document.getElementById('manualCode').value)" class="bg-gray-800 px-3 rounded text-[10px] hover:bg-gray-700">OK</button>
-                            </div>
-                        </div>
+                    <div class="flex-1 flex flex-col justify-end gap-2">
+                        <input type="text" id="input-A" placeholder="QR CÓDIGO..." class="bg-black border border-gray-800 rounded p-2 text-[10px] outline-none text-green-500">
+                        <button onclick="verify('A')" class="bg-blue-600 py-2 rounded text-[10px] font-bold uppercase">Escanear</button>
                     </div>
                 </div>
             </div>
-
         </div>
+
+        <!-- Casillero 2 -->
+        <div class="locker-case" id="locker-B">
+            <div class="compartment-interior">
+                <div id="item-B" class="item-placeholder">📦</div>
+                <div class="mt-4 text-center px-4">
+                    <p id="msg-B" class="text-blue-400 font-bold text-xs uppercase">Esperando...</p>
+                    <button onclick="closeLocker('B')" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-bold">CERRAR</button>
+                </div>
+            </div>
+            <div class="locker-door" id="door-B">
+                <div class="control-panel">
+                    <h1 class="text-center font-bold text-sm mb-4 font-[Orbitron]">CLOTHE-ME</h1>
+                    <div class="bg-black/50 p-2 rounded border border-gray-800 mb-4">
+                        <div class="flex items-center text-[10px]">
+                            <span id="led-B" class="status-led led-wait"></span>
+                            <span id="status-text-B">LISTO</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex flex-col justify-end gap-2">
+                        <input type="text" id="input-B" placeholder="QR CÓDIGO..." class="bg-black border border-gray-800 rounded p-2 text-[10px] outline-none text-green-500">
+                        <button onclick="verify('B')" class="bg-blue-600 py-2 rounded text-[10px] font-bold uppercase">Escanear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        let html5QrCode;
-        let lastResponse = null;
-        const door = document.getElementById('locker-door');
-        const statusLed = document.getElementById('status-led');
-        const statusText = document.getElementById('status-text');
-        const modeText = document.getElementById('mode-text');
-        const startBtn = document.getElementById('start-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const scannerPlaceholder = document.getElementById('scanner-placeholder');
-        const scannerContainer = document.getElementById('scanner-container');
-        const nextActionPanel = document.getElementById('next-action-panel');
-        const adminSidebar = document.getElementById('admin-sidebar');
+        function toggleAdmin() { document.getElementById('admin-sidebar').classList.toggle('open'); if(document.getElementById('admin-sidebar').classList.contains('open')) refreshData(); }
+        function toggleConfig() { document.getElementById('config-panel').classList.toggle('hidden'); }
 
-        function toggleAdmin() { adminSidebar.classList.toggle('open'); if(adminSidebar.classList.contains('open')) refreshData(); }
-        function toggleConfig() { document.getElementById('config-content').classList.toggle('show'); }
-
-        function updateStatus(type, text) {
-            statusLed.className = `status-led led-${type}`;
-            statusText.innerText = text;
-            if (type === 'error') {
-                statusText.classList.add('text-red-500');
-                setTimeout(() => statusText.classList.remove('text-red-500'), 3000);
-            }
-        }
-
-        async function onScanSuccess(decodedText) {
-            updateStatus('active', 'PROCESANDO...');
-            stopScanner();
-            await verifyCode(decodedText);
-        }
-
-        async function verifyCode(code) {
-            if (!code) return;
+        async function verify(side) {
+            const code = document.getElementById(`input-${side}`).value;
             const apiUrl = document.getElementById('apiUrl').value;
             const apiKey = document.getElementById('apiKey').value;
 
+            if (!code) return;
+
+            updateStatus(side, 'active', 'VALIDANDO...');
+
             try {
-                updateStatus('active', 'VALIDANDO...');
                 const response = await fetch(`${apiUrl}/api/locker/verify`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -399,189 +253,114 @@
                 });
 
                 const data = await response.json();
-                lastResponse = data;
 
                 if (data.access) {
-                    openLocker(data);
-                    if(adminSidebar.classList.contains('open')) refreshData();
+                    openLocker(side, data);
+                    
+                    // Simular notificación en la app
+                    if (data.action === 'open_for_deposit') {
+                        const otherUser = side === 'A' ? 'B' : 'A';
+                        setTimeout(() => {
+                            alert(`🔔 [APP NOTIFICACIÓN]: ¡El Usuario ${side} ha depositado su prenda! Se ha notificado al Usuario ${otherUser}.`);
+                        }, 2000);
+                    }
                 } else {
-                    updateStatus('error', data.message || 'ACCESO DENEGADO');
-                    if (data.message) alert(data.message);
+                    const errorMsg = data.error || data.message || 'ACCESO DENEGADO';
+                    updateStatus(side, 'error', errorMsg);
+                    alert(errorMsg);
                 }
             } catch (err) {
-                updateStatus('error', 'ERROR DE RED');
+                updateStatus(side, 'error', 'ERROR RED');
             }
         }
 
-        function openLocker(data) {
-            updateStatus('active', 'ABRIENDO...');
-            const interiorItem = document.getElementById('interior-item');
-            const interiorMsg = document.getElementById('interior-msg');
-            const interiorLockerId = document.getElementById('interior-locker-id');
-
-            interiorLockerId.innerText = `CASILLERO ${data.lockerId}`;
-            interiorItem.innerText = data.item || "📦";
-            interiorMsg.innerText = data.message || "PUERTA ABIERTA";
-
-            setTimeout(() => {
-                door.classList.add('open');
-                updateStatus('active', data.action === 'open_for_deposit' ? 'ESPERANDO DEPÓSITO' : 'ESPERANDO RETIRADA');
-            }, 500);
+        function openLocker(side, data) {
+            // Decidir en qué casillero físico se abre (el backend nos da el ID como L01, L02...)
+            // Para el tester, asumimos que A es para la primera acción y B para la segunda si es necesario
+            // o simplemente usamos el lado donde se escaneó.
+            
+            const targetSide = side; // Por simplicidad usamos el mismo lado del input
+            document.getElementById(`door-${targetSide}`).classList.add('open');
+            document.getElementById(`item-${targetSide}`).innerText = data.item || '👕';
+            document.getElementById(`msg-${targetSide}`).innerText = data.message;
+            updateStatus(targetSide, 'active', 'ABIERTO');
         }
 
-        function closeLocker() {
-            door.classList.remove('open');
-            updateStatus('wait', 'SISTEMA LISTO');
-            if (lastResponse && lastResponse.nextAction === 'pickup_ready') {
-                nextActionPanel.classList.remove('hidden');
-                startBtn.classList.add('hidden');
-            } else {
-                resetSystem();
-            }
+        function closeLocker(side) {
+            document.getElementById(`door-${side}`).classList.remove('open');
+            document.getElementById(`input-${side}`).value = '';
+            updateStatus(side, 'wait', 'LISTO');
+            if(document.getElementById('admin-sidebar').classList.contains('open')) refreshData();
         }
 
-        function triggerNextAction() {
-            nextActionPanel.classList.add('hidden');
-            const nextData = {
-                access: true,
-                action: 'open_for_pickup',
-                lockerId: lastResponse.nextLockerId,
-                message: 'Usuario B: Recoge la prenda de A en el casillero ' + lastResponse.nextLockerId,
-                item: '👕'
-            };
-            lastResponse = null;
-            openLocker(nextData);
+        function updateStatus(side, type, text) {
+            document.getElementById(`led-${side}`).className = `status-led led-${type}`;
+            document.getElementById(`status-text-${side}`).innerText = text;
         }
 
-        function resetSystem() {
-            if (html5QrCode && html5QrCode.isScanning) stopScanner();
-            nextActionPanel.classList.add('hidden');
-            startBtn.classList.remove('hidden');
-            updateStatus('wait', 'SISTEMA LISTO');
-        }
-
-        function toggleScanner() {
-            if (html5QrCode && html5QrCode.isScanning) { stopScanner(); return; }
-            scannerPlaceholder.classList.add('hidden');
-            scannerContainer.classList.add('scan-active');
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 15, qrbox: { width: 200, height: 200 } };
-            updateStatus('active', 'ESCANEANDO...');
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-                .then(() => { startBtn.classList.add('hidden'); stopBtn.classList.remove('hidden'); })
-                .catch(err => { updateStatus('error', 'ERROR CÁMARA'); scannerPlaceholder.classList.remove('hidden'); scannerContainer.classList.remove('scan-active'); });
-        }
-
-        function stopScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    startBtn.classList.remove('hidden');
-                    stopBtn.classList.add('hidden');
-                    scannerPlaceholder.classList.remove('hidden');
-                    scannerContainer.classList.remove('scan-active');
-                    updateStatus('wait', 'SISTEMA LISTO');
-                });
-            }
-        }
-
-        // Funciones Admin
+        // Admin Functions
         async function refreshData() {
-            const apiUrlInput = document.getElementById('apiUrl');
-            const apiUrl = apiUrlInput.value.trim().replace(/\/$/, ''); // Eliminar espacios y barra final
-            const lockersList = document.getElementById('lockers-list');
-            const exchangesList = document.getElementById('exchanges-list');
-            
-            console.log(`Intentando conectar a: ${apiUrl}/api/locker/all`);
-            
+            const apiUrl = document.getElementById('apiUrl').value;
+            const token = document.getElementById('adminToken').value;
+            const info = document.getElementById('admin-info');
+
             try {
-                const response = await fetch(`${apiUrl}/api/locker/all`);
-                
-                if (!response.ok) {
-                    throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
-                }
-
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    const text = await response.text();
-                    console.error("Respuesta no es JSON:", text);
-                    throw new Error("El servidor no devolvió JSON (posible error 404 o página de inicio)");
-                }
-
+                const response = await fetch(`${apiUrl}/api/locker/all`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const data = await response.json();
                 
-                // Renderizar Casilleros
-                let lockersHtml = '';
-                const sortedLockerIds = Object.keys(data.lockers || {}).sort();
+                let html = '<div class="space-y-4">';
                 
-                if (sortedLockerIds.length === 0) {
-                    lockersHtml = '<p class="text-[10px] text-gray-600 italic text-center">No hay casilleros registrados</p>';
-                } else {
-                    sortedLockerIds.forEach(id => {
-                        const l = data.lockers[id];
-                        lockersHtml += `
-                            <div class="locker-grid-item border-l-4 ${l.status === 'AVAILABLE' ? 'border-green-500' : 'border-yellow-500'}">
-                                <div class="flex justify-between items-center">
-                                    <span class="font-bold text-blue-400">${id}</span>
-                                    <span class="status-badge status-${l.status}">${l.status}</span>
-                                </div>
-                                ${l.currentExchange ? `<div class="text-[8px] text-gray-500 mt-1">Exch: ${l.currentExchange.substring(0,8)}... (${l.type})</div>` : ''}
-                            </div>
-                        `;
-                    });
-                }
-                lockersList.innerHTML = lockersHtml;
+                // Casilleros
+                html += '<div><h4 class="text-[8px] text-gray-500 uppercase mb-2">Casilleros</h4><div class="grid grid-cols-2 gap-2">';
+                Object.keys(data.lockers || {}).forEach(id => {
+                    const l = data.lockers[id];
+                    html += `<div class="bg-black p-2 rounded border border-gray-800 text-[8px]">
+                        <span class="text-blue-400 font-bold">${id}</span>: 
+                        <span class="${l.status === 'AVAILABLE' ? 'text-green-500' : 'text-yellow-500'}">${l.status}</span>
+                    </div>`;
+                });
+                html += '</div></div>';
 
-                // Renderizar Intercambios
-                let exchHtml = '';
-                const exchIds = Object.keys(data.activeExchanges || {});
-                
-                if (exchIds.length === 0) {
-                    exchHtml = '<p class="text-[10px] text-gray-600 italic text-center">No hay intercambios activos</p>';
-                } else {
-                    exchIds.forEach(id => {
-                        const e = data.activeExchanges[id];
-                        exchHtml += `
-                            <div class="bg-gray-900 border border-gray-800 p-2 rounded text-[9px]">
-                                <div class="text-blue-500 font-bold mb-1">ID: ${id.substring(0,8)}...</div>
-                                <div class="grid grid-cols-2 gap-2 text-gray-400">
-                                    <div>
-                                        <div class="font-bold text-gray-200">User A (${e.lockerA})</div>
-                                        <div>Status: <span class="${e.statusA === 'COMPLETED' ? 'text-green-500' : 'text-yellow-500'}">${e.statusA}</span></div>
-                                        <div class="text-[7px] font-mono mt-1 opacity-50">QR: ${e.codeA}</div>
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-gray-200">User B (${e.lockerB})</div>
-                                        <div>Status: <span class="${e.statusB === 'COMPLETED' ? 'text-green-500' : 'text-yellow-500'}">${e.statusB}</span></div>
-                                        <div class="text-[7px] font-mono mt-1 opacity-50">QR: ${e.codeB}</div>
-                                    </div>
-                                </div>
+                // Intercambios
+                html += '<div><h4 class="text-[8px] text-gray-500 uppercase mb-2">Intercambios Activos</h4>';
+                Object.keys(data.activeExchanges || {}).forEach(id => {
+                    const e = data.activeExchanges[id];
+                    html += `<div class="bg-gray-900 p-3 rounded border border-gray-700 text-[9px] mb-3">
+                        <p class="text-blue-500 font-bold mb-2">EXCHANGE ID: ${id.substring(0,8)}</p>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center bg-black/40 p-1 rounded">
+                                <span class="text-gray-400">QR USER A:</span>
+                                <span class="text-green-400 font-mono font-bold select-all">${e.codeA}</span>
                             </div>
-                        `;
-                    });
-                }
-                exchangesList.innerHTML = exchHtml;
+                            <div class="flex justify-between items-center bg-black/40 p-1 rounded">
+                                <span class="text-gray-400">QR USER B:</span>
+                                <span class="text-green-400 font-mono font-bold select-all">${e.codeB}</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[7px] text-gray-500 mt-2 uppercase">
+                            <span>Status A: ${e.statusA}</span>
+                            <span>Status B: ${e.statusB}</span>
+                        </div>
+                    </div>`;
+                });
+                html += '</div></div>';
 
+                info.innerHTML = html;
             } catch (err) {
-                lockersList.innerHTML = `<div class="p-2 bg-red-900/20 border border-red-500 rounded text-[9px] text-red-400">
-                    <strong>Error:</strong> ${err.message}<br>
-                    <span class="opacity-50">Verifica que el backend esté corriendo en ${apiUrl}</span>
-                </div>`;
-                console.error(err);
+                info.innerHTML = '<p class="text-red-500 text-[8px]">Error al conectar. Revisa el token.</p>';
             }
         }
 
         async function seedLockers() {
             const apiUrl = document.getElementById('apiUrl').value;
-            if(!confirm("¿Reiniciar todos los casilleros? Esto borrará intercambios activos.")) return;
+            const token = document.getElementById('adminToken').value;
             try {
-                const response = await fetch(`${apiUrl}/api/locker/seed`);
-                const data = await response.json();
-                alert("Sistema reiniciado correctamente.");
+                await fetch(`${apiUrl}/api/locker/seed`, { headers: { 'Authorization': `Bearer ${token}` } });
+                alert('Sistema Reiniciado');
                 refreshData();
-                resetSystem();
-            } catch (err) {
-                alert("Error al reiniciar: " + err.message);
-            }
+            } catch (err) { alert('Error'); }
         }
     </script>
 </body>

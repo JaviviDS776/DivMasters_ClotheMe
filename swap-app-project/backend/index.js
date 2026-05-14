@@ -5,7 +5,7 @@ const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const verifyToken = require('./src/middleware/authMiddleware');
+const { verifyToken } = require('./src/middleware/authMiddleware');
 
 const allowedOrigins = [
   'http://localhost:5173', 

@@ -1,5 +1,5 @@
 // backend/src/controllers/lockerController.js
-const { db, rtdb } = require('../services/firebaseService');
+const { db, rtdb, admin } = require('../services/firebaseService');
 const crypto = require('crypto');
 
 const IOT_API_KEY = process.env.IOT_API_KEY;
@@ -8,7 +8,10 @@ if (!IOT_API_KEY) {
   console.warn('⚠️ WARNING: IOT_API_KEY is not defined in environment variables.');
 }
 
-const generateHash = (text) => crypto.createHash('sha256').update(text + Date.now()).digest('hex').substring(0, 10);
+const generateHash = (text) => {
+  const salt = crypto.randomBytes(4).toString('hex');
+  return crypto.createHash('sha256').update(text + Date.now() + salt).digest('hex').substring(0, 10);
+};
 
 exports.assignLocker = async (req, res) => {
   const { exchangeId, userA, userB } = req.body;
@@ -65,8 +68,9 @@ exports.assignLocker = async (req, res) => {
 exports.verifyLockerCode = async (req, res) => {
   const { scannedCode, apiKey } = req.body;
 
-  if (!IOT_API_KEY || apiKey !== IOT_API_KEY) {
-    return res.status(403).json({ error: 'No autorizado' });
+  // SEGURIDAD: Validación estricta de API Key
+  if (!IOT_API_KEY || !apiKey || apiKey !== IOT_API_KEY) {
+    return res.status(403).json({ error: 'No autorizado. API Key inválida o no configurada.' });
   }
 
   try {
@@ -102,9 +106,16 @@ exports.verifyLockerCode = async (req, res) => {
           item: '👕'
         };
         await exchangeRef.update({ statusA: 'DEPOSITED' });
+
+        // NOTIFICACIÓN: Informar al Usuario B que A ya depositó
+        await db.collection('exchanges').doc(exchangeId).update({
+          lastNotification: 'user_a_deposited',
+          status: 'partially_deposited',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
       } 
       else if (statusA === 'DEPOSITED') {
-        if (statusB === 'DEPOSITED') {
+        if (statusB === 'DEPOSITED' || statusB === 'COMPLETED') {
           response = { 
             access: true, 
             action: 'open_for_pickup', 
@@ -129,9 +140,16 @@ exports.verifyLockerCode = async (req, res) => {
           item: '👟'
         };
         await exchangeRef.update({ statusB: 'DEPOSITED' });
+
+        // NOTIFICACIÓN: Informar al Usuario A que B ya depositó
+        await db.collection('exchanges').doc(exchangeId).update({
+          lastNotification: 'user_b_deposited',
+          status: 'partially_deposited',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
       } 
       else if (statusB === 'DEPOSITED') {
-        if (statusA === 'DEPOSITED') {
+        if (statusA === 'DEPOSITED' || statusA === 'COMPLETED') {
           response = { 
             access: true, 
             action: 'open_for_pickup', 
@@ -156,45 +174,38 @@ exports.verifyLockerCode = async (req, res) => {
 async function checkExchangeCompletion(exchangeId) {
   const exchangeRef = rtdb.ref(`active_exchanges/${exchangeId}`);
   
-  // Usar transacción para evitar condiciones de carrera
-  await exchangeRef.transaction((currentData) => {
-    if (currentData && currentData.statusA === 'COMPLETED' && currentData.statusB === 'COMPLETED') {
-      // Retornar null para borrar el nodo del intercambio activo
-      return null;
-    }
-    return undefined; // Abortar transacción si no se cumplen condiciones
-  }, async (error, committed, snapshot) => {
-    if (committed && !snapshot.exists()) {
-      // La transacción se completó y el nodo fue borrado (nuestro "null" arriba)
-      // Ahora liberamos casilleros y limpiamos índices
-      const dataBeforeDeletion = snapshot.val(); // Esto puede ser null si ya se borró, pero el callback 'snapshot' contiene el estado previo al borrado en algunas versiones o el estado final.
+  try {
+    // 1. Obtener datos antes de cualquier acción
+    const snap = await exchangeRef.once('value');
+    const data = snap.val();
+
+    if (data && data.statusA === 'COMPLETED' && data.statusB === 'COMPLETED') {
+      const { lockerA, lockerB, codeA, codeB } = data;
       
-      // En RTDB el callback de transacción devuelve el snapshot FINAL. Si devolvimos null, snapshot.exists() será false.
-      // Necesitamos el exchangeData para saber qué casilleros liberar.
-      // Lo ideal es hacerlo antes o tenerlo guardado.
+      console.log(`✅ Intercambio ${exchangeId} finalizado. Liberando casilleros ${lockerA} y ${lockerB}...`);
+
+      const updates = {};
+      // Liberar casilleros
+      updates[`lockers/${lockerA}`] = { status: 'AVAILABLE', currentExchange: null };
+      updates[`lockers/${lockerB}`] = { status: 'AVAILABLE', currentExchange: null };
+      
+      // Limpiar índices de búsqueda
+      updates[`qr_indices/${codeA}`] = null;
+      updates[`qr_indices/${codeB}`] = null;
+      
+      // ELIMINAR el intercambio activo al FINAL
+      updates[`active_exchanges/${exchangeId}`] = null;
+      
+      await rtdb.ref().update(updates);
+
+      // Actualizar en Firestore para el historial del usuario
+      await db.collection('exchanges').doc(exchangeId).update({
+        status: 'completed',
+        completedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
     }
-  });
-
-  // Re-implementación robusta con Transacción para el estado, y limpieza posterior
-  const snap = await exchangeRef.once('value');
-  const data = snap.val();
-
-  if (data && data.statusA === 'COMPLETED' && data.statusB === 'COMPLETED') {
-    const { lockerA, lockerB, codeA, codeB } = data;
-    
-    const updates = {};
-    updates[`lockers/${lockerA}`] = { status: 'AVAILABLE', currentExchange: null };
-    updates[`lockers/${lockerB}`] = { status: 'AVAILABLE', currentExchange: null };
-    updates[`active_exchanges/${exchangeId}`] = null;
-    updates[`qr_indices/${codeA}`] = null;
-    updates[`qr_indices/${codeB}`] = null;
-    
-    await rtdb.ref().update(updates);
-
-    await db.collection('exchanges').doc(exchangeId).update({
-      status: 'completed',
-      completedAt: new Date()
-    });
+  } catch (error) {
+    console.error('Error en checkExchangeCompletion:', error);
   }
 }
 

@@ -28,7 +28,12 @@ const Exchanges = () => {
   const handleStatusUpdate = async (exchangeId, status) => {
     try {
       await updateExchangeStatus(exchangeId, status);
-      toast.success(`Intercambio ${status === 'accepted' ? 'aceptado' : 'rechazado'}`);
+      const messages = {
+        accepted: 'Intercambio aceptado',
+        rejected: 'Intercambio rechazado',
+        completed: '¡Intercambio completado con éxito!'
+      };
+      toast.success(messages[status] || 'Estado actualizado');
       fetchExchanges();
     } catch (error) {
       toast.error('Error al actualizar estado');
@@ -119,11 +124,13 @@ const Exchanges = () => {
                         ex.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                         ex.status === 'accepted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                         ex.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                        ex.status === 'completed' ? 'bg-slate-50 text-slate-600 border-slate-100' :
                         'bg-indigo-50 text-indigo-600 border-indigo-100'
                       }`}>
                         {ex.status === 'pending' ? 'Pendiente' : 
                          ex.status === 'accepted' ? 'Aceptado' : 
-                         ex.status === 'rejected' ? 'Rechazado' : 'Listo en Casillero'}
+                         ex.status === 'rejected' ? 'Rechazado' : 
+                         ex.status === 'completed' ? 'Completado' : 'Listo en Casillero'}
                       </span>
                       <p className="text-slate-800 font-black text-sm">{ex.garmentWanted.title}</p>
                     </div>
@@ -146,7 +153,7 @@ const Exchanges = () => {
                         </button>
                       )}
 
-                      {ex.qrCodes && (
+                      {ex.qrCodes && ex.status !== 'completed' && (
                         <button onClick={() => setSelectedQR(isRequester ? ex.qrCodes.userA : ex.qrCodes.userB)} className="flex items-center gap-2 bg-black text-white px-8 py-3 rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-xl">
                           <QrCode size={16} strokeWidth={3} /> VER MI QR
                         </button>
