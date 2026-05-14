@@ -16,7 +16,7 @@ const char* password = "TU_WIFI_PASSWORD";
 
 // --- CONFIGURACIÓN API (HTTPS RECOMENDADO) ---
 const String backendUrl = "https://TU_BACKEND_URL.vercel.app/api/locker/verify";
-const String apiKey = "TU_SECRET_IOT_API_KEY"; // Debe coincidir con el .env del backend
+const String apiKey = "TU_SECRET_IOT_API_KEY"; // DEBE coincidir con IOT_API_KEY en el .env del backend
 const String lockerId = "L01";
 
 // Certificado Raíz (Root CA) para Vercel/Cloudflare (Opcional si se usa insecure para pruebas, pero recomendado)
