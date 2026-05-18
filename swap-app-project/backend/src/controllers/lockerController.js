@@ -8,9 +8,8 @@ if (!IOT_API_KEY) {
   console.warn('⚠️ WARNING: IOT_API_KEY is not defined in environment variables.');
 }
 
-const generateHash = (text) => {
-  const salt = crypto.randomBytes(4).toString('hex');
-  return crypto.createHash('sha256').update(text + Date.now() + salt).digest('hex').substring(0, 10);
+const generateHexCode = () => {
+  return crypto.randomBytes(5).toString('hex');
 };
 
 exports.assignLocker = async (req, res) => {
@@ -28,8 +27,8 @@ exports.assignLocker = async (req, res) => {
     const lockerA = lockerIds[0];
     const lockerB = lockerIds[1];
     
-    const hashA = generateHash(userA);
-    const hashB = generateHash(userB);
+    const hashA = generateHexCode();
+    const hashB = generateHexCode();
 
     // Reservar casilleros y crear índices de búsqueda rápida por QR
     const updates = {};
