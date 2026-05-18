@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { getExchanges, updateExchangeStatus, requestLockerAssignment, adminUpdateExchangeStatus } from '../services/api';
 import { auth } from '../firebase';
 import toast from 'react-hot-toast';
-import QRCode from 'react-qr-code';
-import { Check, X, Box, QrCode, ArrowRightLeft, ShieldAlert } from 'lucide-react';
+import { Check, X, Box, Hash, ArrowRightLeft, ShieldAlert } from 'lucide-react';
 
 const Exchanges = () => {
   const [exchanges, setExchanges] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedQR, setSelectedQR] = useState(null);
+  const [selectedCode, setSelectedCode] = useState(null);
 
   useEffect(() => {
     fetchExchanges();
@@ -154,8 +153,8 @@ const Exchanges = () => {
                       )}
 
                       {ex.qrCodes && ex.status !== 'completed' && (
-                        <button onClick={() => setSelectedQR(isRequester ? ex.qrCodes.userA : ex.qrCodes.userB)} className="flex items-center gap-2 bg-black text-white px-8 py-3 rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-xl">
-                          <QrCode size={16} strokeWidth={3} /> VER MI QR
+                        <button onClick={() => setSelectedCode(isRequester ? ex.qrCodes.userA : ex.qrCodes.userB)} className="flex items-center gap-2 bg-black text-white px-8 py-3 rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-xl">
+                          <Hash size={16} strokeWidth={3} /> VER MI CÓDIGO
                         </button>
                       )}
                     </div>
@@ -167,18 +166,20 @@ const Exchanges = () => {
         )}
       </div>
 
-      {/* Modal QR mejorado */}
-      {selectedQR && (
+      {/* Modal Código mejorado */}
+      {selectedCode && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in zoom-in-95 duration-200">
           <div className="bg-white rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl relative">
             <h3 className="text-2xl font-black text-slate-800 mb-2">Tu Llave Digital</h3>
-            <p className="text-slate-500 text-sm mb-8">Escanea esto en el casillero físico para abrirlo.</p>
+            <p className="text-slate-500 text-sm mb-8">Ingresa este código en el casillero físico para abrirlo.</p>
             
-            <div className="bg-white p-6 inline-block border-8 border-slate-50 rounded-[2.5rem] shadow-inner mb-8">
-              <QRCode value={selectedQR} size={180} />
+            <div className="bg-slate-50 p-8 inline-block border-8 border-white rounded-[2.5rem] shadow-inner mb-8 w-full">
+              <span className="text-3xl font-black tracking-[0.1em] text-indigo-600 font-mono">
+                {selectedCode}
+              </span>
             </div>
 
-            <button onClick={() => setSelectedQR(null)} className="w-full bg-slate-100 text-slate-600 py-4 rounded-2xl font-black text-xs hover:bg-slate-200 transition-all">
+            <button onClick={() => setSelectedCode(null)} className="w-full bg-slate-100 text-slate-600 py-4 rounded-2xl font-black text-xs hover:bg-slate-200 transition-all">
               CERRAR
             </button>
           </div>
