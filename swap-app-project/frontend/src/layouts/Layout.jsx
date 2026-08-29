@@ -1,11 +1,15 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, User, MessageCircle, ArrowLeftRight, PlusSquare, LogOut } from 'lucide-react';
+import { Home, User, MessageCircle, ArrowLeftRight, PlusSquare, LogOut, Moon, Sun, Accessibility } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useAccessibility } from '../context/AccessibilityContext';
 import { auth } from '../firebase';
+import AccessibilityToolbar from '../components/AccessibilityToolbar';
+import ImmersiveReaderModal from '../components/ImmersiveReaderModal';
 
 const Layout = () => {
   const location = useLocation();
   const { user } = useAuth();
+  const { darkMode, toggleDarkMode } = useAccessibility();
 
   const navItems = [
     { path: '/', icon: Home, label: 'Inicio' },
@@ -21,11 +25,21 @@ const Layout = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Sidebar para Escritorio */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-screen sticky top-0 p-6">
-        <div className="flex items-center gap-3 mb-10 px-2">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-200">
-            C
+        <div className="flex items-center justify-between mb-10 px-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-200">
+              C
+            </div>
+            <h1 className="text-xl font-black tracking-tighter text-slate-800">ClotheMe</h1>
           </div>
-          <h1 className="text-xl font-black tracking-tighter text-slate-800">ClotheMe</h1>
+
+          <button
+            onClick={toggleDarkMode}
+            className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          >
+            {darkMode ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
+          </button>
         </div>
 
         <nav className="flex-grow space-y-2">
@@ -59,11 +73,20 @@ const Layout = () => {
       {/* Header móvil */}
       <header className="md:hidden bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40 px-4 py-3 flex justify-between items-center">
         <h1 className="text-lg font-black tracking-tighter text-indigo-600">ClotheMe</h1>
-        {user?.photoURL ? (
-          <img src={user.photoURL} className="w-8 h-8 rounded-full border border-slate-200" alt="avatar" />
-        ) : (
-          <div className="w-8 h-8 bg-slate-100 rounded-full border border-slate-200" />
-        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleDarkMode}
+            className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors"
+            title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          >
+            {darkMode ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
+          </button>
+          {user?.photoURL ? (
+            <img src={user.photoURL} className="w-8 h-8 rounded-full border border-slate-200" alt="avatar" />
+          ) : (
+            <div className="w-8 h-8 bg-slate-100 rounded-full border border-slate-200" />
+          )}
+        </div>
       </header>
 
       {/* Contenido Principal */}
@@ -88,6 +111,10 @@ const Layout = () => {
           </Link>
         ))}
       </nav>
+
+      {/* Componentes Globales de Accesibilidad */}
+      <AccessibilityToolbar />
+      <ImmersiveReaderModal />
     </div>
   );
 };

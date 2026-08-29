@@ -9,13 +9,27 @@ cloudinary.config({
 
 const uploadImage = async (file) => {
   return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream({ resource_type: 'auto' }, (error, result) => {
-      if (error) {
-        reject(error);
-      } else {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'image',
+        folder: 'clotheme_posts',
+        tags: ['clotheme', 'cualtos_swap', 'garment'],
+        allowed_formats: ['jpg', 'png', 'webp', 'jpeg'],
+        transformation: [
+          { quality: 'auto:good' },
+          { fetch_format: 'auto' }
+        ]
+      },
+      (error, result) => {
+        if (error) {
+          console.error('Error al subir imagen a Cloudinary:', error);
+          return reject(new Error(error.message || 'Error al procesar la imagen en Cloudinary'));
+        }
         resolve(result);
       }
-    }).end(file.buffer);
+    );
+
+    uploadStream.end(file.buffer);
   });
 };
 

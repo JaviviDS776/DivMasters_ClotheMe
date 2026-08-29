@@ -41,7 +41,7 @@ export const createPost = async (postData) => {
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Error al crear post');
+    throw new Error(errorData.details || errorData.error || 'Error al crear post');
   }
   return await response.json();
 };
@@ -187,6 +187,16 @@ export const addFriend = async (friendId) => {
     body: JSON.stringify({ friendId })
   });
   if (!response.ok) throw new Error('Error al añadir amigo');
+  return await response.json();
+};
+
+export const removeFriend = async (friendId) => {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_URL}/api/users/friends/${friendId}`, {
+    method: 'DELETE',
+    headers
+  });
+  if (!response.ok) throw new Error('Error al eliminar amigo');
   return await response.json();
 };
 

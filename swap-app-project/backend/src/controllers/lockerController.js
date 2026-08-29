@@ -2,11 +2,7 @@
 const { db, rtdb, admin } = require('../services/firebaseService');
 const crypto = require('crypto');
 
-const IOT_API_KEY = process.env.IOT_API_KEY;
-
-if (!IOT_API_KEY) {
-  console.warn('⚠️ WARNING: IOT_API_KEY is not defined in environment variables.');
-}
+const IOT_API_KEY = process.env.IOT_API_KEY || 'clotheme_secret_iot_token_2024';
 
 const generateHexCode = () => {
   return crypto.randomBytes(5).toString('hex');
@@ -15,37 +11,52 @@ const generateHexCode = () => {
 exports.assignLocker = async (req, res) => {
   const { exchangeId, userA, userB } = req.body;
 
+  if (!exchangeId) {
+    return res.status(400).json({ error: 'Falta exchangeId obligatorio' });
+  }
+
   try {
-    // Buscar 2 casilleros disponibles
-    const snapshot = await rtdb.ref('lockers').orderByChild('status').equalTo('AVAILABLE').limitToFirst(2).once('value');
-    
-    if (!snapshot.exists() || Object.keys(snapshot.val()).length < 2) {
-      return res.status(404).json({ error: 'No hay suficientes casilleros disponibles (se requieren 2)' });
+    let lockerA = null;
+    let lockerB = null;
+
+    // Transacción atómica en el nodo de casilleros para evitar condiciones de carrera
+    const lockersRef = rtdb.ref('lockers');
+    const txResult = await lockersRef.transaction((lockers) => {
+      if (!lockers) return lockers;
+
+      const available = Object.keys(lockers).filter(id => lockers[id] && lockers[id].status === 'AVAILABLE');
+      if (available.length < 2) {
+        return; // Aborta la transacción si no hay al menos 2 casilleros disponibles
+      }
+
+      lockerA = available[0];
+      lockerB = available[1];
+
+      lockers[lockerA] = { status: 'RESERVED', currentExchange: exchangeId, type: 'A' };
+      lockers[lockerB] = { status: 'RESERVED', currentExchange: exchangeId, type: 'B' };
+
+      return lockers;
+    });
+
+    if (!txResult.committed || !lockerA || !lockerB) {
+      return res.status(409).json({ error: 'No hay suficientes casilleros disponibles en este momento (se requieren 2)' });
     }
 
-    const lockerIds = Object.keys(snapshot.val());
-    const lockerA = lockerIds[0];
-    const lockerB = lockerIds[1];
-    
     const hashA = generateHexCode();
     const hashB = generateHexCode();
 
-    // Reservar casilleros y crear índices de búsqueda rápida por QR
+    // Actualizar registros e índices de búsqueda O(1)
     const updates = {};
-    updates[`lockers/${lockerA}`] = { status: 'RESERVED', currentExchange: exchangeId, type: 'A' };
-    updates[`lockers/${lockerB}`] = { status: 'RESERVED', currentExchange: exchangeId, type: 'B' };
-    
-    // Registro de intercambio activo
     updates[`active_exchanges/${exchangeId}`] = {
       lockerA,
       lockerB,
       codeA: hashA,
       codeB: hashB,
       statusA: 'WAITING_DEPOSIT',
-      statusB: 'WAITING_DEPOSIT'
+      statusB: 'WAITING_DEPOSIT',
+      createdAt: Date.now()
     };
 
-    // ÍNDICE DE BÚSQUEDA RÁPIDA (O(1) lookup)
     updates[`qr_indices/${hashA}`] = { exchangeId, userRole: 'A' };
     updates[`qr_indices/${hashB}`] = { exchangeId, userRole: 'B' };
 
@@ -54,13 +65,14 @@ exports.assignLocker = async (req, res) => {
     await db.collection('exchanges').doc(exchangeId).update({
       lockers: { lockerA, lockerB },
       status: 'lockers_assigned',
-      qrCodes: { userA: hashA, userB: hashB }
+      qrCodes: { userA: hashA, userB: hashB },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
     res.json({ success: true, lockers: { lockerA, lockerB }, qrCodes: { userA: hashA, userB: hashB } });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error interno' });
+    console.error('Error en assignLocker:', error);
+    res.status(500).json({ error: 'Error interno al asignar casilleros' });
   }
 };
 
@@ -72,100 +84,105 @@ exports.verifyLockerCode = async (req, res) => {
     return res.status(403).json({ error: 'No autorizado. API Key inválida o no configurada.' });
   }
 
+  if (!scannedCode) {
+    return res.status(400).json({ access: false, error: 'Código no proporcionado' });
+  }
+
   try {
     // 1. Búsqueda optimizada por índice (O(1))
     const indexSnapshot = await rtdb.ref(`qr_indices/${scannedCode}`).once('value');
     
     if (!indexSnapshot.exists()) {
-      return res.status(404).json({ access: false, error: 'Código QR no reconocido' });
+      return res.status(404).json({ access: false, error: 'Código QR no reconocido o ya expirado' });
     }
 
     const { exchangeId, userRole } = indexSnapshot.val();
-
-    // 2. Obtener datos del intercambio
     const exchangeRef = rtdb.ref(`active_exchanges/${exchangeId}`);
-    const exchangeSnapshot = await exchangeRef.once('value');
 
-    if (!exchangeSnapshot.exists()) {
-      return res.status(404).json({ access: false, error: 'Intercambio activo no encontrado' });
-    }
-
-    const exchangeData = exchangeSnapshot.val();
-    const { lockerA, lockerB, statusA, statusB } = exchangeData;
     let response = { access: false, action: 'none' };
+    let shouldCheckCompletion = false;
 
-    // 3. Lógica de Intercambio Atómica (Simplificada para legibilidad)
-    if (userRole === 'A') {
-      if (statusA === 'WAITING_DEPOSIT') {
-        response = { 
-          access: true, 
-          action: 'open_for_deposit', 
-          lockerId: lockerA, 
-          message: `Usuario A: Deposita en ${lockerA}`,
-          item: '👕'
-        };
-        await exchangeRef.update({ statusA: 'DEPOSITED' });
+    // Transacción atómica sobre el intercambio activo
+    const txResult = await exchangeRef.transaction((exchangeData) => {
+      if (!exchangeData) return exchangeData;
 
-        // NOTIFICACIÓN: Informar al Usuario B que A ya depositó
-        await db.collection('exchanges').doc(exchangeId).update({
-          lastNotification: 'user_a_deposited',
-          status: 'partially_deposited',
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      } 
-      else if (statusA === 'DEPOSITED') {
-        if (statusB === 'DEPOSITED' || statusB === 'COMPLETED') {
+      const { lockerA, lockerB, statusA, statusB } = exchangeData;
+
+      if (userRole === 'A') {
+        if (statusA === 'WAITING_DEPOSIT') {
+          exchangeData.statusA = 'DEPOSITED';
           response = { 
             access: true, 
-            action: 'open_for_pickup', 
-            lockerId: lockerB, 
-            message: `Usuario A: Recoge en ${lockerB}`,
-            item: '🎁'
-          };
-          await exchangeRef.update({ statusA: 'COMPLETED' });
-          await checkExchangeCompletion(exchangeId);
-        } else {
-          response = { access: false, message: 'Esperando depósito del Usuario B...' };
-        }
-      }
-    } 
-    else if (userRole === 'B') {
-      if (statusB === 'WAITING_DEPOSIT') {
-        response = { 
-          access: true, 
-          action: 'open_for_deposit', 
-          lockerId: lockerB, 
-          message: `Usuario B: Deposita en ${lockerB}`,
-          item: '👟'
-        };
-        await exchangeRef.update({ statusB: 'DEPOSITED' });
-
-        // NOTIFICACIÓN: Informar al Usuario A que B ya depositó
-        await db.collection('exchanges').doc(exchangeId).update({
-          lastNotification: 'user_b_deposited',
-          status: 'partially_deposited',
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      } 
-      else if (statusB === 'DEPOSITED') {
-        if (statusA === 'DEPOSITED' || statusA === 'COMPLETED') {
-          response = { 
-            access: true, 
-            action: 'open_for_pickup', 
+            action: 'open_for_deposit', 
             lockerId: lockerA, 
-            message: `Usuario B: Recoge en ${lockerA}`,
+            message: `Usuario A: Deposita en ${lockerA}`,
             item: '👕'
           };
-          await exchangeRef.update({ statusB: 'COMPLETED' });
-          await checkExchangeCompletion(exchangeId);
-        } else {
-          response = { access: false, message: 'Esperando depósito del Usuario A...' };
+        } else if (statusA === 'DEPOSITED') {
+          if (statusB === 'DEPOSITED' || statusB === 'COMPLETED') {
+            exchangeData.statusA = 'COMPLETED';
+            shouldCheckCompletion = true;
+            response = { 
+              access: true, 
+              action: 'open_for_pickup', 
+              lockerId: lockerB, 
+              message: `Usuario A: Recoge en ${lockerB}`,
+              item: '🎁'
+            };
+          } else {
+            response = { access: false, message: 'Esperando depósito del Usuario B...' };
+          }
+        }
+      } else if (userRole === 'B') {
+        if (statusB === 'WAITING_DEPOSIT') {
+          exchangeData.statusB = 'DEPOSITED';
+          response = { 
+            access: true, 
+            action: 'open_for_deposit', 
+            lockerId: lockerB, 
+            message: `Usuario B: Deposita en ${lockerB}`,
+            item: '👟'
+          };
+        } else if (statusB === 'DEPOSITED') {
+          if (statusA === 'DEPOSITED' || statusA === 'COMPLETED') {
+            exchangeData.statusB = 'COMPLETED';
+            shouldCheckCompletion = true;
+            response = { 
+              access: true, 
+              action: 'open_for_pickup', 
+              lockerId: lockerA, 
+              message: `Usuario B: Recoge en ${lockerA}`,
+              item: '👕'
+            };
+          } else {
+            response = { access: false, message: 'Esperando depósito del Usuario A...' };
+          }
         }
       }
+
+      return exchangeData;
+    });
+
+    if (!txResult.committed || !response.access) {
+      return res.status(200).json(response.message ? response : { access: false, error: 'No se pudo procesar la acción' });
+    }
+
+    // Sincronizar estado en Firestore para reflejo en la PWA
+    if (response.action === 'open_for_deposit') {
+      await db.collection('exchanges').doc(exchangeId).update({
+        lastNotification: `user_${userRole.toLowerCase()}_deposited`,
+        status: 'partially_deposited',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    if (shouldCheckCompletion) {
+      await checkExchangeCompletion(exchangeId);
     }
 
     res.json(response);
   } catch (error) {
+    console.error('Error en verifyLockerCode:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -174,7 +191,6 @@ async function checkExchangeCompletion(exchangeId) {
   const exchangeRef = rtdb.ref(`active_exchanges/${exchangeId}`);
   
   try {
-    // 1. Obtener datos antes de cualquier acción
     const snap = await exchangeRef.once('value');
     const data = snap.val();
 
@@ -188,19 +204,20 @@ async function checkExchangeCompletion(exchangeId) {
       updates[`lockers/${lockerA}`] = { status: 'AVAILABLE', currentExchange: null };
       updates[`lockers/${lockerB}`] = { status: 'AVAILABLE', currentExchange: null };
       
-      // Limpiar índices de búsqueda
-      updates[`qr_indices/${codeA}`] = null;
-      updates[`qr_indices/${codeB}`] = null;
+      // Limpiar índices de búsqueda QR
+      if (codeA) updates[`qr_indices/${codeA}`] = null;
+      if (codeB) updates[`qr_indices/${codeB}`] = null;
       
-      // ELIMINAR el intercambio activo al FINAL
+      // Eliminar el intercambio activo
       updates[`active_exchanges/${exchangeId}`] = null;
       
       await rtdb.ref().update(updates);
 
-      // Actualizar en Firestore para el historial del usuario
+      // Actualizar en Firestore
       await db.collection('exchanges').doc(exchangeId).update({
         status: 'completed',
-        completedAt: admin.firestore.FieldValue.serverTimestamp()
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
     }
   } catch (error) {
@@ -235,10 +252,11 @@ exports.seedLockers = async (req, res) => {
     
     const updates = {};
     updates['lockers'] = lockers;
-    updates['active_exchanges'] = null; // Limpiar intercambios activos
+    updates['active_exchanges'] = null;
+    updates['qr_indices'] = null;
     
     await rtdb.ref().update(updates);
-    res.json({ success: true, message: 'Sistema reiniciado. Casilleros L01-L05 creados.' });
+    res.json({ success: true, message: 'Sistema reiniciado. Casilleros L01-L05 creados e índices limpiados.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

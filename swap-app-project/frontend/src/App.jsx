@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AccessibilityProvider } from './context/AccessibilityContext';
 
 import Login from './pages/Login';
 import Home from './pages/Home';
@@ -30,9 +31,10 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Toaster />
+    <AccessibilityProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Toaster />
         
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -72,6 +74,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+  </AccessibilityProvider>
   );
 }
 

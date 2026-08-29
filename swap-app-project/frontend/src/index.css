@@ -2,17 +2,265 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================
+   VARIABLES GLOBALES DE TEMA Y PALETAS
+   ========================================= */
 :root {
   --app-bg: #f8fafc;
-  --primary: #4f46e5;
+  --primary-color: #4f46e5;
   --primary-hover: #4338ca;
+  --primary-light: #eef2ff;
+  --primary-border: #e0e7ff;
+  --primary-shadow: rgba(79, 70, 229, 0.2);
 }
 
+/* PALETA 1: ESMERALDA */
+[data-palette="emerald"] {
+  --primary-color: #059669;
+  --primary-hover: #047857;
+  --primary-light: #ecfdf5;
+  --primary-border: #d1fae5;
+  --primary-shadow: rgba(5, 150, 105, 0.2);
+}
+
+/* PALETA 2: RUBÍ / ROSA */
+[data-palette="rose"] {
+  --primary-color: #e11d48;
+  --primary-hover: #be123c;
+  --primary-light: #fff1f2;
+  --primary-border: #ffe4e6;
+  --primary-shadow: rgba(225, 29, 72, 0.2);
+}
+
+/* PALETA 3: ÁMBAR CÁLIDO */
+[data-palette="amber"] {
+  --primary-color: #d97706;
+  --primary-hover: #b45309;
+  --primary-light: #fffbeb;
+  --primary-border: #fef3c7;
+  --primary-shadow: rgba(217, 119, 6, 0.2);
+}
+
+/* PALETA 4: CIAN OCÉANO */
+[data-palette="cyan"] {
+  --primary-color: #0891b2;
+  --primary-hover: #0e7490;
+  --primary-light: #ecfeff;
+  --primary-border: #cffafe;
+  --primary-shadow: rgba(8, 145, 178, 0.2);
+}
+
+/* PALETA 5: VIOLETA */
+[data-palette="violet"] {
+  --primary-color: #7c3aed;
+  --primary-hover: #6d28d9;
+  --primary-light: #f5f3ff;
+  --primary-border: #ede9fe;
+  --primary-shadow: rgba(124, 58, 237, 0.2);
+}
+
+/* Mapeo Automático de Clases Tailwind a la Paleta Activa */
+.bg-indigo-600 {
+  background-color: var(--primary-color) !important;
+}
+
+.hover\:bg-indigo-700:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+.text-indigo-600,
+.text-indigo-500 {
+  color: var(--primary-color) !important;
+}
+
+.bg-indigo-50 {
+  background-color: var(--primary-light) !important;
+}
+
+.border-indigo-100,
+.border-indigo-50 {
+  border-color: var(--primary-border) !important;
+}
+
+.shadow-indigo-100,
+.shadow-indigo-200 {
+  --tw-shadow-color: var(--primary-shadow) !important;
+  box-shadow: 0 10px 15px -3px var(--primary-shadow), 0 4px 6px -4px var(--primary-shadow) !important;
+}
+
+/* ESCALA DE TAMAÑO DE TEXTO */
+[data-font-size="large"] {
+  font-size: 112% !important;
+}
+
+[data-font-size="xlarge"] {
+  font-size: 125% !important;
+}
+
+/* =========================================
+   MODO OSCURO (DARK THEME)
+   ========================================= */
+html.dark,
+[data-theme="dark"] {
+  --app-bg: #0b0f19;
+  color-scheme: dark;
+}
+
+html.dark body,
+[data-theme="dark"] body {
+  background-color: #0b0f19;
+  color: #f1f5f9;
+}
+
+html.dark .bg-white,
+[data-theme="dark"] .bg-white {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
+  border-color: #1f2937 !important;
+}
+
+html.dark .bg-slate-50,
+[data-theme="dark"] .bg-slate-50 {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+html.dark .bg-slate-100,
+[data-theme="dark"] .bg-slate-100 {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800 {
+  color: #f9fafb !important;
+}
+
+html.dark .text-slate-700,
+[data-theme="dark"] .text-slate-700 {
+  color: #e5e7eb !important;
+}
+
+html.dark .text-slate-600,
+[data-theme="dark"] .text-slate-600 {
+  color: #d1d5db !important;
+}
+
+html.dark .text-slate-500,
+[data-theme="dark"] .text-slate-500 {
+  color: #9ca3af !important;
+}
+
+html.dark .text-slate-400,
+[data-theme="dark"] .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200 {
+  border-color: #1f2937 !important;
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: #1e293b !important;
+  color: #f9fafb !important;
+  border-color: #334155 !important;
+}
+
+html.dark aside,
+[data-theme="dark"] aside {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+html.dark header,
+[data-theme="dark"] header {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+  border-color: #1e293b !important;
+}
+
+html.dark nav,
+[data-theme="dark"] nav {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-color: #1e293b !important;
+}
+
+/* =========================================
+   MODO DE ALTO CONTRASTE (WCAG AAA)
+   ========================================= */
+[data-high-contrast="true"] {
+  --app-bg: #000000 !important;
+  --primary-color: #ffff00 !important;
+  --primary-hover: #e6e600 !important;
+  --primary-light: #181818 !important;
+  --primary-border: #ffff00 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+[data-high-contrast="true"] body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+[data-high-contrast="true"] * {
+  border-color: #ffffff !important;
+}
+
+[data-high-contrast="true"] .bg-white,
+[data-high-contrast="true"] .bg-slate-50,
+[data-high-contrast="true"] .bg-slate-100 {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+[data-high-contrast="true"] .text-slate-900,
+[data-high-contrast="true"] .text-slate-800,
+[data-high-contrast="true"] .text-slate-700,
+[data-high-contrast="true"] .text-slate-600,
+[data-high-contrast="true"] .text-slate-500,
+[data-high-contrast="true"] .text-slate-400 {
+  color: #ffffff !important;
+}
+
+[data-high-contrast="true"] .text-indigo-600,
+[data-high-contrast="true"] .text-indigo-500 {
+  color: #ffff00 !important;
+  font-weight: 900 !important;
+}
+
+[data-high-contrast="true"] .bg-indigo-600,
+[data-high-contrast="true"] .bg-black {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  font-weight: 900 !important;
+  border: 2px solid #ffffff !important;
+}
+
+[data-high-contrast="true"] a:focus,
+[data-high-contrast="true"] button:focus {
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 3px !important;
+}
+
+/* Base Body Styles */
 body {
   background-color: var(--app-bg);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #1e293b;
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Scrollbars elegantes */
@@ -23,32 +271,16 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: #cbd5e1;
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background: #94a3b8;
 }
 
-/* Animaciones suaves */
-.fade-in {
-  animation: fadeIn 0.3s ease-out;
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
 }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Clases útiles */
-.glass-card {
-  @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
-}
-
-.btn-primary {
-  @apply bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-200 disabled:opacity-50;
-}
-
-.input-field {
-  @apply w-full bg-white border border-slate-200 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all;
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }

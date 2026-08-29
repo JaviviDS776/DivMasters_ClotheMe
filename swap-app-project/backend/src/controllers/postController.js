@@ -1,43 +1,63 @@
 const { db, admin } = require('../services/firebaseService');
 const { uploadImage } = require('../services/cloudinaryService');
+const { moderateText, moderateImageBuffer } = require('../services/moderationService');
 
 // 1. Crear un nuevo post
 exports.createPost = async (req, res) => {
   try {
     const { title, description, lockerZone } = req.body;
-    const { uid, name, email, picture, photoURL: tokenPhotoURL } = req.user; // Obtenido del authMiddleware
+    const { uid, name, email, picture, photoURL: tokenPhotoURL } = req.user;
     let imageUrl = req.body.imageUrl;
 
-    console.log('--- Iniciando creación de post ---');
-    console.log('Datos recibidos:', { title, description, lockerZone });
-    console.log('Usuario:', { uid, name, email });
+    console.log('--- Iniciando creación de post con moderación ---');
 
     if (!title) {
-      console.log('Error: Título faltante');
-      return res.status(400).json({ error: 'Título es obligatorio' });
+      return res.status(400).json({ error: 'El título es obligatorio' });
     }
 
+    // PASO 1: Moderación de Texto y Términos Comunitarios
+    const textModeration = moderateText(title, description);
+    if (!textModeration.approved) {
+      console.warn('Post rechazado por moderación de texto:', textModeration.reason);
+      return res.status(400).json({ 
+        error: 'Contenido no permitido', 
+        details: textModeration.reason 
+      });
+    }
+
+    // PASO 2: Moderación y Validación del Archivo de Imagen
     if (req.file) {
-      console.log('Archivo recibido, subiendo a Cloudinary...');
+      const imageModeration = moderateImageBuffer(req.file);
+      if (!imageModeration.approved) {
+        console.warn('Imagen rechazada por moderación de archivo:', imageModeration.reason);
+        return res.status(400).json({ 
+          error: 'Imagen no válida', 
+          details: imageModeration.reason 
+        });
+      }
+
+      console.log('Archivo validado, subiendo a Cloudinary con filtros de seguridad...');
       try {
         const result = await uploadImage(req.file);
         imageUrl = result.secure_url;
-        console.log('Imagen subida con éxito:', imageUrl);
+        console.log('Imagen subida y aprobada con éxito:', imageUrl);
       } catch (cloudinaryError) {
-        console.error('Error detallado de Cloudinary:', cloudinaryError);
-        return res.status(500).json({ error: 'Error al procesar la imagen en el servidor', details: cloudinaryError.message });
+        console.error('Error en servicio de Cloudinary / Moderación:', cloudinaryError.message);
+        return res.status(400).json({ 
+          error: 'Error al moderar o procesar la imagen', 
+          details: cloudinaryError.message 
+        });
       }
     }
 
     if (!imageUrl) {
-      console.log('Error: URL de imagen faltante');
-      return res.status(400).json({ error: 'Imagen es obligatoria' });
+      return res.status(400).json({ error: 'La fotografía de la prenda es obligatoria' });
     }
 
     const newPost = {
       title,
       description: description || '',
-      lockerZone: lockerZone || 'CUCEI - General',
+      lockerZone: lockerZone || 'CUALTOS - General',
       imageUrl,
       authorId: uid,
       authorName: name || 'Usuario',

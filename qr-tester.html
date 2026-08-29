@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClotheMe - Terminal Multi-Casillero</title>
+    <title>ClotheMe - Terminal Multi-Casillero (Simulador)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👕</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -112,8 +113,8 @@
         .admin-sidebar {
             position: fixed;
             top: 0;
-            left: -300px;
-            width: 300px;
+            left: -320px;
+            width: 320px;
             height: 100vh;
             background: #1a1a1a;
             border-right: 1px solid #333;
@@ -129,6 +130,8 @@
             padding: 10px;
             border-radius: 0 5px 5px 0;
             cursor: pointer;
+            border: 1px solid #333;
+            border-left: none;
         }
 
         .config-btn {
@@ -143,34 +146,36 @@
 
     <!-- Sidebar Admin -->
     <div id="admin-sidebar" class="admin-sidebar">
-        <button onclick="toggleAdmin()" class="admin-toggle">📊</button>
-        <div class="p-6">
-            <h2 class="text-xl font-bold text-blue-500 mb-6 font-[Orbitron]">CONTROL</h2>
-            <button onclick="seedLockers()" class="w-full bg-blue-600 mb-2 py-2 rounded text-xs font-bold uppercase">Reiniciar Sistema</button>
-            <button onclick="refreshData()" class="w-full bg-gray-800 mb-6 py-2 rounded text-xs font-bold uppercase">Actualizar Estados</button>
+        <button onclick="toggleAdmin()" class="admin-toggle" title="Panel de Control">📊</button>
+        <div class="p-6 overflow-y-auto h-full">
+            <h2 class="text-xl font-bold text-blue-500 mb-4 font-[Orbitron]">CONTROL IOT</h2>
+            <p class="text-[10px] text-gray-400 mb-4">Monitorea casilleros e intercambios activos en Realtime Database.</p>
+            
+            <button onclick="seedLockers()" class="w-full bg-blue-600 hover:bg-blue-700 mb-2 py-2 rounded text-xs font-bold uppercase transition-colors">Reiniciar Sistema</button>
+            <button onclick="refreshData()" class="w-full bg-gray-800 hover:bg-gray-700 mb-6 py-2 rounded text-xs font-bold uppercase transition-colors">Actualizar Estados</button>
             
             <div id="admin-info" class="space-y-4">
-                <p class="text-[10px] text-gray-500 text-center italic">Cargando datos...</p>
+                <p class="text-[10px] text-gray-500 text-center italic">Presiona "Actualizar Estados" para consultar.</p>
             </div>
         </div>
     </div>
 
     <!-- Configuración -->
-    <button onclick="toggleConfig()" class="config-btn bg-gray-800 p-3 rounded-full border border-gray-600">⚙️</button>
-    <div id="config-panel" class="hidden fixed top-20 right-20 bg-[#1a1a1a] p-6 rounded-lg border border-gray-700 z-[200] w-64 shadow-2xl">
-        <h3 class="text-sm font-bold text-blue-400 mb-4 uppercase">Configuración</h3>
+    <button onclick="toggleConfig()" class="config-btn bg-gray-800 hover:bg-gray-700 p-3 rounded-full border border-gray-600" title="Configurar API">⚙️</button>
+    <div id="config-panel" class="hidden fixed top-20 right-20 bg-[#1a1a1a] p-6 rounded-lg border border-gray-700 z-[200] w-72 shadow-2xl">
+        <h3 class="text-sm font-bold text-blue-400 mb-4 uppercase">Configuración API</h3>
         <div class="space-y-4 text-[10px]">
             <div>
                 <label class="block text-gray-400 mb-1">Backend URL</label>
-                <input type="text" id="apiUrl" value="http://localhost:3000" class="w-full bg-black border border-gray-700 rounded p-2">
+                <input type="text" id="apiUrl" value="http://localhost:3000" class="w-full bg-black border border-gray-700 rounded p-2 text-white font-mono">
             </div>
             <div>
-                <label class="block text-gray-400 mb-1">API Key</label>
-                <input type="password" id="apiKey" value="clotheme_secret_iot_token_2024" class="w-full bg-black border border-gray-700 rounded p-2">
+                <label class="block text-gray-400 mb-1">API Key IoT</label>
+                <input type="text" id="apiKey" value="clotheme_secret_iot_token_2024" class="w-full bg-black border border-gray-700 rounded p-2 text-white font-mono">
             </div>
             <div>
-                <label class="block text-gray-400 mb-1">Admin Token</label>
-                <input type="password" id="adminToken" placeholder="Pegar token aquí..." class="w-full bg-black border border-gray-700 rounded p-2">
+                <label class="block text-gray-400 mb-1">Admin Token (Opcional para panel)</label>
+                <input type="password" id="adminToken" placeholder="Bearer Token Firebase..." class="w-full bg-black border border-gray-700 rounded p-2 text-white font-mono">
             </div>
         </div>
     </div>
@@ -184,21 +189,21 @@
                 <div id="item-A" class="item-placeholder">📦</div>
                 <div class="mt-4 text-center px-4">
                     <p id="msg-A" class="text-blue-400 font-bold text-xs uppercase">Esperando...</p>
-                    <button onclick="closeLocker('A')" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-bold">CERRAR</button>
+                    <button onclick="closeLocker('A')" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-[10px] font-bold">CERRAR PUERTA</button>
                 </div>
             </div>
             <div class="locker-door" id="door-A">
                 <div class="control-panel">
-                    <h1 class="text-center font-bold text-sm mb-4 font-[Orbitron]">CLOTHE-ME</h1>
+                    <h1 class="text-center font-bold text-sm mb-4 font-[Orbitron]">CLOTHE-ME [L01]</h1>
                     <div class="bg-black/50 p-2 rounded border border-gray-800 mb-4">
                         <div class="flex items-center text-[10px]">
                             <span id="led-A" class="status-led led-wait"></span>
-                            <span id="status-text-A">LISTO</span>
+                            <span id="status-text-A">LISTO PARA ESCANEO</span>
                         </div>
                     </div>
                     <div class="flex-1 flex flex-col justify-end gap-2">
-                        <input type="text" id="input-A" placeholder="CÓDIGO NUMÉRICO..." class="bg-black border border-gray-800 rounded p-2 text-[10px] outline-none text-green-500">
-                        <button onclick="verify('A')" class="bg-blue-600 py-2 rounded text-[10px] font-bold uppercase">Ingresar</button>
+                        <input type="text" id="input-A" placeholder="CÓDIGO QR / HASH..." class="bg-black border border-gray-800 rounded p-2 text-[10px] outline-none text-green-500 font-mono">
+                        <button onclick="verify('A')" class="bg-blue-600 hover:bg-blue-700 py-2 rounded text-[10px] font-bold uppercase transition-colors">Validar Código</button>
                     </div>
                 </div>
             </div>
@@ -210,21 +215,21 @@
                 <div id="item-B" class="item-placeholder">📦</div>
                 <div class="mt-4 text-center px-4">
                     <p id="msg-B" class="text-blue-400 font-bold text-xs uppercase">Esperando...</p>
-                    <button onclick="closeLocker('B')" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-bold">CERRAR</button>
+                    <button onclick="closeLocker('B')" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-[10px] font-bold">CERRAR PUERTA</button>
                 </div>
             </div>
             <div class="locker-door" id="door-B">
                 <div class="control-panel">
-                    <h1 class="text-center font-bold text-sm mb-4 font-[Orbitron]">CLOTHE-ME</h1>
+                    <h1 class="text-center font-bold text-sm mb-4 font-[Orbitron]">CLOTHE-ME [L02]</h1>
                     <div class="bg-black/50 p-2 rounded border border-gray-800 mb-4">
                         <div class="flex items-center text-[10px]">
                             <span id="led-B" class="status-led led-wait"></span>
-                            <span id="status-text-B">LISTO</span>
+                            <span id="status-text-B">LISTO PARA ESCANEO</span>
                         </div>
                     </div>
                     <div class="flex-1 flex flex-col justify-end gap-2">
-                        <input type="text" id="input-B" placeholder="CÓDIGO NUMÉRICO..." class="bg-black border border-gray-800 rounded p-2 text-[10px] outline-none text-green-500">
-                        <button onclick="verify('B')" class="bg-blue-600 py-2 rounded text-[10px] font-bold uppercase">Ingresar</button>
+                        <input type="text" id="input-B" placeholder="CÓDIGO QR / HASH..." class="bg-black border border-gray-800 rounded p-2 text-[10px] outline-none text-green-500 font-mono">
+                        <button onclick="verify('B')" class="bg-blue-600 hover:bg-blue-700 py-2 rounded text-[10px] font-bold uppercase transition-colors">Validar Código</button>
                     </div>
                 </div>
             </div>
@@ -233,15 +238,24 @@
     </div>
 
     <script>
-        function toggleAdmin() { document.getElementById('admin-sidebar').classList.toggle('open'); if(document.getElementById('admin-sidebar').classList.contains('open')) refreshData(); }
-        function toggleConfig() { document.getElementById('config-panel').classList.toggle('hidden'); }
+        function toggleAdmin() { 
+            const sb = document.getElementById('admin-sidebar');
+            sb.classList.toggle('open'); 
+            if (sb.classList.contains('open')) refreshData(); 
+        }
+        function toggleConfig() { 
+            document.getElementById('config-panel').classList.toggle('hidden'); 
+        }
 
         async function verify(side) {
-            const code = document.getElementById(`input-${side}`).value;
-            const apiUrl = document.getElementById('apiUrl').value;
+            const code = document.getElementById(`input-${side}`).value.trim();
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
             const apiKey = document.getElementById('apiKey').value;
 
-            if (!code) return;
+            if (!code) {
+                alert('Por favor ingresa un código hash o escanea un QR.');
+                return;
+            }
 
             updateStatus(side, 'active', 'VALIDANDO...');
 
@@ -254,15 +268,14 @@
 
                 const data = await response.json();
 
-                if (data.access) {
+                if (response.ok && data.access) {
                     openLocker(side, data);
                     
-                    // Simular notificación en la app
                     if (data.action === 'open_for_deposit') {
                         const otherUser = side === 'A' ? 'B' : 'A';
                         setTimeout(() => {
-                            alert(`🔔 [APP NOTIFICACIÓN]: ¡El Usuario ${side} ha depositado su prenda! Se ha notificado al Usuario ${otherUser}.`);
-                        }, 2000);
+                            alert(`🔔 [NOTIFICACIÓN PWA]: ¡El Usuario ${side} ha depositado su prenda en ${data.lockerId}! Notificado al Usuario ${otherUser}.`);
+                        }, 1000);
                     }
                 } else {
                     const errorMsg = data.error || data.message || 'ACCESO DENEGADO';
@@ -270,16 +283,13 @@
                     alert(errorMsg);
                 }
             } catch (err) {
-                updateStatus(side, 'error', 'ERROR RED');
+                updateStatus(side, 'error', 'ERROR DE RED');
+                alert(`Error al conectar con ${apiUrl}. Verifica que el servidor backend esté corriendo.`);
             }
         }
 
         function openLocker(side, data) {
-            // Decidir en qué casillero físico se abre (el backend nos da el ID como L01, L02...)
-            // Para el tester, asumimos que A es para la primera acción y B para la segunda si es necesario
-            // o simplemente usamos el lado donde se escaneó.
-            
-            const targetSide = side; // Por simplicidad usamos el mismo lado del input
+            const targetSide = side;
             document.getElementById(`door-${targetSide}`).classList.add('open');
             document.getElementById(`item-${targetSide}`).innerText = data.item || '👕';
             document.getElementById(`msg-${targetSide}`).innerText = data.message;
@@ -290,7 +300,7 @@
             document.getElementById(`door-${side}`).classList.remove('open');
             document.getElementById(`input-${side}`).value = '';
             updateStatus(side, 'wait', 'LISTO');
-            if(document.getElementById('admin-sidebar').classList.contains('open')) refreshData();
+            if (document.getElementById('admin-sidebar').classList.contains('open')) refreshData();
         }
 
         function updateStatus(side, type, text) {
@@ -300,68 +310,97 @@
 
         // Admin Functions
         async function refreshData() {
-            const apiUrl = document.getElementById('apiUrl').value;
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
             const token = document.getElementById('adminToken').value;
             const info = document.getElementById('admin-info');
 
+            const headers = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             try {
-                const response = await fetch(`${apiUrl}/api/locker/all`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
+                const response = await fetch(`${apiUrl}/api/locker/all`, { headers });
                 
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        info.innerHTML = `
+                            <div class="p-3 bg-amber-950/40 border border-amber-800 rounded text-[9px] text-amber-300">
+                                <p class="font-bold mb-1">🔐 Endpoint Protegido</p>
+                                <p>Esta ruta requiere un token de administrador válido. Para probar la apertura física de casilleros, usa el teclado/lector en la pantalla principal.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
                 let html = '<div class="space-y-4">';
                 
                 // Casilleros
-                html += '<div><h4 class="text-[8px] text-gray-500 uppercase mb-2">Casilleros</h4><div class="grid grid-cols-2 gap-2">';
+                html += '<div><h4 class="text-[8px] text-gray-500 uppercase mb-2 font-bold">Estado de Casilleros</h4><div class="grid grid-cols-2 gap-2">';
                 Object.keys(data.lockers || {}).forEach(id => {
                     const l = data.lockers[id];
                     html += `<div class="bg-black p-2 rounded border border-gray-800 text-[8px]">
                         <span class="text-blue-400 font-bold">${id}</span>: 
-                        <span class="${l.status === 'AVAILABLE' ? 'text-green-500' : 'text-yellow-500'}">${l.status}</span>
+                        <span class="${l.status === 'AVAILABLE' ? 'text-green-500' : 'text-yellow-500'} font-bold">${l.status}</span>
                     </div>`;
                 });
                 html += '</div></div>';
 
                 // Intercambios
-                html += '<div><h4 class="text-[8px] text-gray-500 uppercase mb-2">Intercambios Activos</h4>';
-                Object.keys(data.activeExchanges || {}).forEach(id => {
-                    const e = data.activeExchanges[id];
-                    html += `<div class="bg-gray-900 p-3 rounded border border-gray-700 text-[9px] mb-3">
-                        <p class="text-blue-500 font-bold mb-2">EXCHANGE ID: ${id.substring(0,8)}</p>
-                        <div class="space-y-2">
-                            <div class="flex justify-between items-center bg-black/40 p-1 rounded">
-                                <span class="text-gray-400">CODE USER A:</span>
-                                <span class="text-green-400 font-mono font-bold select-all">${e.codeA}</span>
+                html += '<div><h4 class="text-[8px] text-gray-500 uppercase mb-2 font-bold">Intercambios Activos</h4>';
+                const exKeys = Object.keys(data.activeExchanges || {});
+                if (exKeys.length === 0) {
+                    html += '<p class="text-[8px] text-gray-600 italic">No hay intercambios activos.</p>';
+                } else {
+                    exKeys.forEach(id => {
+                        const e = data.activeExchanges[id];
+                        html += `<div class="bg-gray-900 p-3 rounded border border-gray-700 text-[9px] mb-3">
+                            <p class="text-blue-500 font-bold mb-2">ID: ${id.substring(0,8)}</p>
+                            <div class="space-y-1">
+                                <div class="flex justify-between items-center bg-black/40 p-1 rounded">
+                                    <span class="text-gray-400">QR A:</span>
+                                    <span class="text-green-400 font-mono font-bold select-all cursor-pointer" onclick="document.getElementById('input-A').value='${e.codeA}'" title="Hacer clic para autocompletar en Locker A">${e.codeA} 📋</span>
+                                </div>
+                                <div class="flex justify-between items-center bg-black/40 p-1 rounded">
+                                    <span class="text-gray-400">QR B:</span>
+                                    <span class="text-green-400 font-mono font-bold select-all cursor-pointer" onclick="document.getElementById('input-B').value='${e.codeB}'" title="Hacer clic para autocompletar en Locker B">${e.codeB} 📋</span>
+                                </div>
                             </div>
-                            <div class="flex justify-between items-center bg-black/40 p-1 rounded">
-                                <span class="text-gray-400">CODE USER B:</span>
-                                <span class="text-green-400 font-mono font-bold select-all">${e.codeB}</span>
+                            <div class="flex justify-between text-[7px] text-gray-400 mt-2 uppercase">
+                                <span>A: ${e.statusA}</span>
+                                <span>B: ${e.statusB}</span>
                             </div>
-                        </div>
-                        <div class="flex justify-between text-[7px] text-gray-500 mt-2 uppercase">
-                            <span>Status A: ${e.statusA}</span>
-                            <span>Status B: ${e.statusB}</span>
-                        </div>
-                    </div>`;
-                });
+                        </div>`;
+                    });
+                }
                 html += '</div></div>';
 
                 info.innerHTML = html;
             } catch (err) {
-                info.innerHTML = '<p class="text-red-500 text-[8px]">Error al conectar. Revisa el token.</p>';
+                info.innerHTML = `<div class="p-3 bg-red-950/40 border border-red-800 rounded text-[9px] text-red-300">
+                    <p class="font-bold">Error de conexión</p>
+                    <p class="text-[8px] mt-1">${err.message}. Verifica que el backend esté corriendo en ${apiUrl}.</p>
+                </div>`;
             }
         }
 
         async function seedLockers() {
-            const apiUrl = document.getElementById('apiUrl').value;
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
             const token = document.getElementById('adminToken').value;
+            const headers = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             try {
-                await fetch(`${apiUrl}/api/locker/seed`, { headers: { 'Authorization': `Bearer ${token}` } });
-                alert('Sistema Reiniciado');
+                const res = await fetch(`${apiUrl}/api/locker/seed`, { headers });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                alert('Sistema Reiniciado: Casilleros L01-L05 creados y disponibles.');
                 refreshData();
-            } catch (err) { alert('Error'); }
+            } catch (err) { 
+                alert(`Error al reiniciar: ${err.message}. Verifica permisos de admin o backend.`); 
+            }
         }
     </script>
 </body>
 </html>
+

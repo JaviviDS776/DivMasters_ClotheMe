@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "lockers": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["status"]
+    },
+    "active_exchanges": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "qr_indices": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}

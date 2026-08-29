@@ -1,1 +1,0 @@
-Tengo este error "GET http://127.0.0.1:5500/favicon.ico 404 (Not Found) qr-tester.html:494  GET http://localhost:3000/api/locker/all 404 (Not Found) refreshData @ qr-tester.html:494 toggleAdmin @ qr-tester.html:370 onclick @ qr-tester.html:230 qr-tester.html:551 SyntaxError: Unexpected token <, !DOCTYPE ... is not valid JSON"

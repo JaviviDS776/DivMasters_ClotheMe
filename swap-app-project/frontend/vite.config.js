@@ -12,6 +12,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
+        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15 MiB para modelo de IA
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json,vue,txt,woff2}'],
       },
       includeAssets: ['apple-touch-icon.png'],

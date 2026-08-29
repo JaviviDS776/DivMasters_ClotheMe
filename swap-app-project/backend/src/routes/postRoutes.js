@@ -4,9 +4,22 @@ const postController = require('../controllers/postController');
 const { verifyToken } = require('../middleware/authMiddleware');
 const multer = require('multer');
 
-const upload = multer({ storage: multer.memoryStorage() });
+// Configuración segura de Multer con límite de 5MB y filtro de imágenes
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { 
+    fileSize: 5 * 1024 * 1024 // 5 MB máximo
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos de imagen (JPEG, PNG, WEBP)'), false);
+    }
+  }
+});
 
-// Obtener todos los posts (Feed) - Puede ser público
+// Obtener todos los posts (Feed) - Público
 router.get('/', postController.getPosts);
 
 // Rutas protegidas
@@ -17,3 +30,4 @@ router.post('/:id/comment', verifyToken, postController.addComment);
 router.get('/:id/comments', postController.getComments);
 
 module.exports = router;
+
